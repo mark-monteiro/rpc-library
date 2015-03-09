@@ -7,5 +7,5 @@ To compile the test code (test client and test server):
 Run the binder:
 `./binder`
 
-The binder will print out a port number, then you can run the server test code by running `./tester` <port_num>
+The binder will print out a port number, then in a new terminal tab you can run the server by running `./tester <port_num>`
 All the 'tester' file does is just set the necessary environment variables before running the server
