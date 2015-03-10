@@ -1,15 +1,20 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <vector>
+#include <map>
 
 #include "debug.h"
 #include "message.h"
 #include "rpc_helpers.h"
 #include "serialize.h"
 #include "rpc.h"
+#include "function_signature.h"
+
+using namespace std;
 
 //TODO: maybe these shouldn't be at global scope....
 int binder_sock, listener_sock;
+map<FunctionSignature, skeleton> function_database;
 
 int rpcInit() {
     // Create listening socket for clients
@@ -30,7 +35,9 @@ int rpcInit() {
 }
 
 int rpcRegister(char* name, int* argTypes, skeleton f) {
-    //TODO: save the skeleton to some data structure
+    // Add function name and skeleton to local database (overwrite if existing)
+    function_database[FunctionSignature(name, argTypes)] = f;
+
     Message send_message, recv_message;
 
     // Create REGISTER message
@@ -45,7 +52,7 @@ int rpcRegister(char* name, int* argTypes, skeleton f) {
     if(Message::recv(binder_sock, &recv_message) == false) return -1;
 
     // Get return value from message and return it
-    std::vector<char>::iterator index = recv_message.data.begin();
+    vector<char>::iterator index = recv_message.data.begin();
     return deserializeInt(index);
 }
 
