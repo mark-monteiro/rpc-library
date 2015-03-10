@@ -85,10 +85,10 @@ char* Message::typeToString() {
     }
 }
 
-const char* Message::dataToString() {
+const char* Message::dataToString(int startIndex) {
     std::vector<char> data_copy = data;
     //replace null terminators with '|'
-    for(int i = 0 ; i < length() ; i++)
+    for(int i = startIndex ; i < length() ; i++)
         if(data_copy[i] == '\0') data_copy[i] = '|';
     return std::string(data_copy.begin(), data_copy.end()).c_str();
 }

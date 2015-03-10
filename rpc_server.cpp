@@ -17,7 +17,7 @@ int rpcInit() {
         debug_print(("Failed to create listener socket"));
         return -1;
     }
-    // debug_print(("rpcInit created listener socket on port %d\n", getPort(binder_sock)));
+    debug_print(("rpcInit created listener socket on port %d\n", getPort(listener_sock)));
 
     // Connect to binder
     if((binder_sock = connect_to_binder()) == -1) {
@@ -30,27 +30,21 @@ int rpcInit() {
 }
 
 int rpcRegister(char* name, int* argTypes, skeleton f) {
-    debug_print(("rpcRegister %s\n", name));
-    
+    //TODO: save the skeleton to some data structure
     Message send_message, recv_message;
 
     // Create REGISTER message
     send_message.type = REGISTER;
     send_message.addData(serializeString(getHostname()));
-    debug_print(("%s\n", send_message.dataToString()));
-    debug_print(("serializing port %d\n", getPort(listener_sock)));
     send_message.addData(serializeInt(getPort(listener_sock)));
-    debug_print(("%s\n", send_message.dataToString()));
     send_message.addData(serializeString(name));
-    debug_print(("%s\n", send_message.dataToString()));
-    // send_message.addData(serializeArgTypes(argTypes));
-    // debug_print(("%s\n", send_message.dataToString()));
+    send_message.addData(serializeArgTypes(argTypes));
 
     // Send message to binder and get response
     if(send_message.send(binder_sock) == false) return -1;
     if(Message::recv(binder_sock, &recv_message) == false) return -1;
 
-    //return value is passed in data segment of the response
+    // Get return value from message and return it
     std::vector<char>::iterator index = recv_message.data.begin();
     return deserializeInt(index);
 }
