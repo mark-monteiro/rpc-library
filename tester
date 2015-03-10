@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Pass binder port as first argument
-export BINDER_ADDRESS=mark-VirtualBox
+export BINDER_ADDRESS=localhost
 export BINDER_PORT=$1
 
 ./server
