@@ -1,5 +1,5 @@
 FLAGS=-Wall
-DEBUG_FLAGS=-Wall -DDEBUG -g -O0
+DEBUG_FLAGS=-Wall -DDEBUG -ggdb -O0
 
 all:
 	# g++ -c $(FLAGS) message.cpp

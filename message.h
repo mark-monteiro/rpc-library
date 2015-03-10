@@ -28,7 +28,7 @@ struct Message {
     bool send(int sock);
     static bool recv(int sock, Message *message);
     char* typeToString();
-    const char* dataToString();
+    const char* dataToString(int startIndex = 0);
     void print();
 };
 

@@ -85,13 +85,9 @@ int main(void) {
 
 bool register_server(Message message, int sock) {
     Message response;
-    //TODO: deserialize argTypes and add it to the database
-    
     char *identifier, *name;
-    int port;
-    // int *argTypes;
+    int port, *argTypes;
     vector<char>::iterator index = message.data.begin();
-    debug_print(("starting deserialization\n"));
 
     identifier = deserializeString(index);
     debug_print(("identifier deserialized: %s\n", identifier));
@@ -99,8 +95,9 @@ bool register_server(Message message, int sock) {
     debug_print(("port deserialized: %d\n", port));
     name = deserializeString(index);
     debug_print(("name deserialized: %s\n", name));
-    // argTypes = deserializeArgTypes(index);
-    // debug_print(("argTypes deserialized: %d\n", argTypes[0]));
+    argTypes = deserializeArgTypes(index);
+
+    //TODO: deserialize argTypes and add it to the database
 
     response.type = REGISTER_SUCCESS;
     response.data.push_back(htonl(0));
@@ -112,8 +109,12 @@ bool locate_server(Message message, int sock) {
     return false;
 }
 
+// Handle incoming data on a socket
+// Receives the next message on that socket,
+// and calls a handler based on the message type
 bool process_port(int sock) {
     Message recv_message;
+    debug_print(("--------------------------------------\n"));
     debug_print(("Processing request on socket %d\n", sock));
 
     // Receive message
