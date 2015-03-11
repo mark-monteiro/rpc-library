@@ -99,8 +99,9 @@ bool register_server(Message message, int sock) {
 
     //TODO: deserialize argTypes and add it to the database
 
-    response.type = REGISTER_SUCCESS;
-    response.data.push_back(htonl(0));
+    response.type = REGISTER_RESPONSE;
+    // TODO: return warning if deplicate function was registered
+    response.addData(serializeInt(0));
     return response.send(sock);
 }
 
@@ -126,9 +127,7 @@ bool process_port(int sock) {
         case LOC_REQUEST: return locate_server(recv_message, sock);
 
         default:
-        debug_print(("Invalid message type sent to binder: %d\n", recv_message.type));
+        debug_print(("Invalid message type sent to binder: %s\n", recv_message.typeToString()));
         return false;
     }
-    
-    return true;
 }

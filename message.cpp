@@ -73,8 +73,7 @@ bool Message::recv(int sock, Message *message) {
 char* Message::typeToString() {
     switch(type) {
         case REGISTER: return (char*)"REGISTER";
-        case REGISTER_SUCCESS: return (char*)"REGISTER_SUCCESS";
-        case REGISTER_FAILURE: return (char*)"REGISTER_FAILURE";
+        case REGISTER_RESPONSE: return (char*)"REGISTER_RESPONSE";
         case LOC_REQUEST: return (char*)"LOC_REQUEST";
         case LOC_SUCCESS: return (char*)"LOC_SUCCESS";
         case LOC_FAILURE: return (char*)"LOC_FAILURE";
