@@ -14,12 +14,13 @@
 using namespace std;
 
 //TODO: maybe these shouldn't be at global scope....
+bool terminate = false;
 int binder_sock, listener_sock;
 map<FunctionSignature, skeleton> function_database;
 
 // Forward declarations
 bool processPort(int sock);
-bool terminateServer(Message message, int sock);
+bool terminateServer();
 bool executeRpc(Message message, int sock);
 
 int rpcInit() {
@@ -68,9 +69,6 @@ int rpcRegister(char* name, int* argTypes, skeleton f) {
 }
 
 int rpcExecute() {
-    //TODO: accept connections on listener socket
-    //      accept connection from binder, waiting for terminate message
-
     // select() variables
     fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
@@ -83,7 +81,7 @@ int rpcExecute() {
     fdmax = max(listener_sock, binder_sock);
 
     // main loop
-    while(true) {
+    while(!terminate) {
         read_fds = master; // copy it
         if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
             perror("select");
@@ -123,7 +121,12 @@ int rpcExecute() {
             } // END got new incoming connection
         } // END looping through file descriptors
     } // END main loop
-    return -1;
+
+    // TODO: wait for all execution threads to finish
+    // TODO: close all sockets
+    // TODO: send termination response to binder? Do we need to?
+
+    return 0;
 }
 
 bool processPort(int sock) {
@@ -134,7 +137,8 @@ bool processPort(int sock) {
     // Receive message
     if(Message::recv(sock, &recv_message) == false) return false;
 
-    if(sock == binder_sock && recv_message.type == EXECUTE) return terminateServer(recv_message, sock);
+    if(sock == binder_sock && recv_message.type == EXECUTE) return terminateServer();
+    // TODO: execution should happen on a new thread
     else if(recv_message.type == EXECUTE) return executeRpc(recv_message, sock);
     else {
         debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString()));
@@ -142,8 +146,10 @@ bool processPort(int sock) {
     }
 }
 
-bool terminateServer(Message message, int sock) {
-    return -1;
+bool terminateServer() {
+    // Set flag for accept loop to exit
+    terminate = true;
+    return true;
 }
 
 bool executeRpc(Message message, int sock) {
