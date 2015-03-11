@@ -12,8 +12,8 @@ all:
 #TODO: separate into message, helpers, rpc actions
 
 debug:
-	$(CXX) -c $(DEBUG_FLAGS) serialize.cpp rpc_client.cpp rpc_server.cpp rpc_helpers.cpp message.cpp
-	ar rc librpc.a serialize.o rpc_helpers.o message.o rpc_server.o rpc_client.o
+	$(CXX) -c $(DEBUG_FLAGS) function_signature.cpp serialize.cpp rpc_client.cpp rpc_server.cpp rpc_helpers.cpp message.cpp
+	ar rc librpc.a function_signature.o serialize.o rpc_helpers.o message.o rpc_server.o rpc_client.o
 	ranlib librpc.a 
 	$(CXX) -o binder $(DEBUG_FLAGS) serialize.cpp rpc_helpers.cpp message.cpp binder.cpp
 
