@@ -49,7 +49,7 @@ int connect_to_remote(char *hostname, char *port) {
 
     //get list of addresses we can connect to for this destination
     if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-        debug_print(("connect_to_binder: getaddrinfo: %s\n", gai_strerror(rv)));
+        debug_print(("connect_to_remote: getaddrinfo: %s\n", gai_strerror(rv)));
         return -1;
     }
 
@@ -58,14 +58,14 @@ int connect_to_remote(char *hostname, char *port) {
         //create socket
         if ((sock = socket(p->ai_family, p->ai_socktype,
             p->ai_protocol)) == -1) {
-            perror("connect_to_binder: failed to create socket");
+            perror("connect_to_remote: failed to create socket");
             continue;
         }
 
         //connect to socket
         if (connect(sock, p->ai_addr, p->ai_addrlen) == -1) {
             close(sock);
-            perror("connect_to_binder: failed to connect socket");
+            perror("connect_to_remote: failed to connect socket");
             continue;
         }
 

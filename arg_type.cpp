@@ -23,9 +23,9 @@ bool ArgType::operator<(const ArgType &other) const {
 }
 
 void ArgType::print() const {
-    debug_print(("\tinput:%d\n", input));
-    debug_print(("\toutput:%d\n", output));
-    debug_print(("\targType:%d\n", type));
+    debug_print(("\tinput:%d", input));
+    debug_print(("\toutput:%d", output));
+    debug_print(("\targType:%d", type));
     debug_print(("\tarrayLength:%d\n", arrayLength));
 }
 

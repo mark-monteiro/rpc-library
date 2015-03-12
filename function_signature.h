@@ -10,8 +10,8 @@ struct FunctionSignature {
     std::string name;
     std::vector<ArgType> argTypes;
 
-    FunctionSignature(char *name, int *argTypes);
-    FunctionSignature(char *name, std::vector<int> argTypes);
+    FunctionSignature(std::string name, int *argTypes);
+    FunctionSignature(std::string name, std::vector<int> argTypes);
     // bool operator==(FunctionSignature &other);
     bool operator<(const FunctionSignature &other) const;
     void print() const;

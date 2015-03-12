@@ -8,16 +8,16 @@
 
 using namespace std;
 
-FunctionSignature::FunctionSignature(char *name, int *argTypes) {
-    this->name = string(name);
+FunctionSignature::FunctionSignature(string name, int *argTypes) {
+    this->name = name;
 
     int numArgs = 0;
     while(argTypes[numArgs] != 0) numArgs++;
-    this->argTypes = vector<ArgType>(argTypes, argTypes + numArgs);
+    this->argTypes = vector<ArgType>(argTypes, argTypes + numArgs + 1);
 }
 
-FunctionSignature::FunctionSignature(char *name, vector<int> argTypes) {
-    this->name = string(name);
+FunctionSignature::FunctionSignature(string name, vector<int> argTypes) {
+    this->name = name;
     this->argTypes = vector<ArgType>(argTypes.begin(), argTypes.end());
 }
 
