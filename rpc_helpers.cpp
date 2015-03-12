@@ -1,7 +1,7 @@
 //TODO: rename to socket_helpers
 
 #include "rpc_helpers.h"
-#include "debug.h"
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +14,8 @@
 #include <limits.h>     //HOST_NAME_MAX
 
 #include <errno.h>
+
+#define debug_print(x) printf x
 
 //TODO: switch to camelCaps
 
