@@ -2,6 +2,7 @@
 #define MESSAGE_H
 
 #include <stdint.h>
+#include <string>
 #include <vector>
 #include <list>
 
@@ -26,8 +27,8 @@ struct Message {
     void addData(char);
     bool send(int sock);
     static bool recv(int sock, Message *message);
-    char* typeToString();
-    const char* dataToString(int startIndex = 0);
+    std::string typeToString();
+    std::string dataToString(int startIndex = 0);
     void print();
 };
 

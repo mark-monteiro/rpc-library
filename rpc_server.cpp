@@ -141,7 +141,7 @@ bool processPort(int sock) {
     // TODO: execution should happen on a new thread
     else if(recv_message.type == EXECUTE) return executeRpc(recv_message, sock);
     else {
-        debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString()));
+        debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString().c_str()));
         return false;
     }
 }

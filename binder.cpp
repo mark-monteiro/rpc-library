@@ -85,16 +85,16 @@ int main(void) {
 
 bool register_server(Message message, int sock) {
     Message response;
-    char *identifier, *name;
+    string identifier, name;
     int port, *argTypes;
     vector<char>::iterator index = message.data.begin();
 
     identifier = deserializeString(index);
-    debug_print(("identifier deserialized: %s\n", identifier));
+    debug_print(("identifier deserialized: %s\n", identifier.c_str()));
     port = deserializeInt(index);
     debug_print(("port deserialized: %d\n", port));
     name = deserializeString(index);
-    debug_print(("name deserialized: %s\n", name));
+    debug_print(("name deserialized: %s\n", name.c_str()));
     argTypes = deserializeArgTypes(index);
 
     //TODO: deserialize argTypes and add it to the database
@@ -127,7 +127,7 @@ bool process_port(int sock) {
         case LOC_REQUEST: return locate_server(recv_message, sock);
 
         default:
-        debug_print(("Invalid message type sent to binder: %s\n", recv_message.typeToString()));
+        debug_print(("Invalid message type sent to binder: %s\n", recv_message.typeToString().c_str()));
         return false;
     }
 }
