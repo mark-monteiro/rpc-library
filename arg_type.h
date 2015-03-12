@@ -10,7 +10,11 @@ struct ArgType {
     ArgType(int typeData);
     int toInt();
     bool operator<(const ArgType &other) const;
-    void print();
+    void print() const;
 };
+
+// struct ArgTypeList : vector<ArgType> {
+//     ArgTypeList(int *args);
+// }
 
 #endif
