@@ -137,7 +137,7 @@ bool processPort(int sock) {
     if(sock == binder_sock && recv_message.type == EXECUTE) return terminateServer(recv_message, sock);
     else if(recv_message.type == EXECUTE) return executeRpc(recv_message, sock);
     else {
-        debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString()));
+        debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString().c_str()));
         return false;
     }
 }

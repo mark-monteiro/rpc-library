@@ -19,11 +19,11 @@ vector<char> serializeString(char *data) {
     // NOTE: must include null terminator for deserialization
     return vector<char>(data, data + strlen(data) + 1);
 }
-const char* deserializeString(vector<char>::iterator &buffer){
+string deserializeString(vector<char>::iterator &buffer){
     // NOTE: this assumes the string is null terminated!
     string deserialized = string(&*buffer);
     buffer += deserialized.length() + 1;
-    return deserialized.c_str();
+    return deserialized;
 }
 
 // ** LONG ** //
@@ -33,7 +33,7 @@ vector<char> serializeLong(long data) {
     return serializeString((char*)(ss.str().c_str()));
 }
 long deserializeLong(vector<char>::iterator &buffer) {
-    return atol(deserializeString(buffer));
+    return atol(deserializeString(buffer).c_str());
 }
 
 // ** INT ** //
@@ -41,7 +41,7 @@ vector<char> serializeInt(int data) {
     return serializeLong((long)data);
 }
 int deserializeInt(vector<char>::iterator &buffer) {
-    return atoi(deserializeString(buffer));
+    return atoi(deserializeString(buffer).c_str());
 }
 
 // ** SHORT ** //
@@ -59,7 +59,7 @@ vector<char> serializeDouble(double data) {
     return serializeString((char*)(ss.str().c_str()));
 }
 double deserializeDouble(vector<char>::iterator &buffer) {
-    return atof(deserializeString(buffer));
+    return atof(deserializeString(buffer).c_str());
 }
 
 // ** FLOAT ** //

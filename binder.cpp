@@ -18,10 +18,7 @@
 // #include "debug.h"
 #include "function_signature.h"
 
-
 # define debug_print(x) do {} while (0)
-
-
 
 using namespace std;
 vector<struct server*> registeredServers;
@@ -217,7 +214,7 @@ bool process_port(int sock) {
         case LOC_REQUEST: return locate_method_on_server(recv_message, sock);
 
         default:
-        debug_print(("Invalid message type sent to binder: %s\n", recv_message.typeToString()));
+        debug_print(("Invalid message type sent to binder: %s\n", recv_message.typeToString().c_str()));
         return false;
     }
 }

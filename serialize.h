@@ -1,10 +1,11 @@
 #ifndef SERIALIZE_H
 #define SERIALIZE_H
 
+#include <string>
 #include <vector>
 
 std::vector<char> serializeString(char *data);
-char* deserializeString(std::vector<char>::iterator &buffer);
+std::string deserializeString(std::vector<char>::iterator &buffer);
 // can use std::string(&buffer[0]) if string is null-terminated
 
 std::vector<char> serializeShort(short data);

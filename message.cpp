@@ -14,6 +14,7 @@
 #include <vector>
 
 #define debug_print(x) printf x
+using namespace std;
 
 // The length of the message is defined by the aggregate size of the data vectors
 uint32_t Message::length() {
@@ -21,7 +22,7 @@ uint32_t Message::length() {
 }
 
 // Append new vector to data buffer
-void Message::addData(std::vector<char> newData) {
+void Message::addData(vector<char> newData) {
     data.insert(data.end(), newData.begin(), newData.end());
 }
 
@@ -72,31 +73,31 @@ bool Message::recv(int sock, Message *message) {
     return true;
 }
 
-char* Message::typeToString() {
+string Message::typeToString() {
     switch(type) {
-        case REGISTER: return (char*)"REGISTER";
-        case REGISTER_RESPONSE: return (char*)"REGISTER_RESPONSE";
-        case LOC_REQUEST: return (char*)"LOC_REQUEST";
-        case LOC_SUCCESS: return (char*)"LOC_SUCCESS";
-        case LOC_FAILURE: return (char*)"LOC_FAILURE";
-        case EXECUTE: return (char*)"EXECUTE";
-        case EXECUTE_SUCCESS: return (char*)"EXECUTE_SUCCESS";
-        case EXECUTE_FAILURE: return (char*)"EXECUTE_FAILURE";
-        case TERMINATE: return (char*)"TERMINATE";
+        case REGISTER: return string("REGISTER");
+        case REGISTER_RESPONSE: return string("REGISTER_RESPONSE");
+        case LOC_REQUEST: return string("LOC_REQUEST");
+        case LOC_SUCCESS: return string("LOC_SUCCESS");
+        case LOC_FAILURE: return string("LOC_FAILURE");
+        case EXECUTE: return string("EXECUTE");
+        case EXECUTE_SUCCESS: return string("EXECUTE_SUCCESS");
+        case EXECUTE_FAILURE: return string("EXECUTE_FAILURE");
+        case TERMINATE: return string("TERMINATE");
     }
 }
 
-const char* Message::dataToString(int startIndex) {
-    std::vector<char> data_copy = data;
+string Message::dataToString(int startIndex) {
+    vector<char> data_copy = data;
     //replace null terminators with '|'
     for(int i = startIndex ; i < length() ; i++)
         if(data_copy[i] == '\0') data_copy[i] = '|';
-    return std::string(data_copy.begin(), data_copy.end()).c_str();
+    return std::string(data_copy.begin(), data_copy.end());
 }
 
 void Message::print() {
     debug_print(("\tlength: %d\n", length()));
-    debug_print(("\ttype: %s\n", typeToString()));
+    debug_print(("\ttype: %s\n", typeToString().c_str()));
     //TODO: print data better
-    debug_print(("\tdata: %s\n", dataToString()));
+    debug_print(("\tdata: %s\n", dataToString().c_str()));
 }
