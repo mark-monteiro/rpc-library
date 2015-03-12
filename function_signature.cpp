@@ -1,33 +1,39 @@
 #include <string>
 #include <vector>
 
+#include "arg_type.h"
+#include "debug.h"
+
 #include "function_signature.h"
 
 using namespace std;
 
 FunctionSignature::FunctionSignature(char *name, int *argTypes) {
     this->name = string(name);
-    
+
     int numArgs = 0;
     while(argTypes[numArgs] != 0) numArgs++;
-    this->argTypes = vector<int>(argTypes, argTypes + numArgs);
+    this->argTypes = vector<ArgType>(argTypes, argTypes + numArgs);
+}
+
+FunctionSignature::FunctionSignature(char *name, vector<int> argTypes) {
+    this->name = string(name);
+    this->argTypes = vector<ArgType>(argTypes.begin(), argTypes.end());
 }
 
 // bool FunctionSignature::operator==(FunctionSignature &other) {
-//     return this->name == other.name &&
-//         this->argTypes.size() == other.argTypes.size() &&
-//         //TODO: use a custom comparer here to ignore array lengths on the arg types
-//         equal(this->argTypes.begin(), this->argTypes.end(), other.argTypes.begin());
+//     return name == other.name && argTypes == other.argTypes;
 // }
 
 bool FunctionSignature::operator<(const FunctionSignature &other) const {
-    if(this->name < other.name) return true;
-    if(this->argTypes.size() < other.argTypes.size()) return true;
+    if(name != other.name) return name < other.name;
+    else return argTypes < other.argTypes;
+}
 
+void FunctionSignature::print() const {
+    debug_print(("%s", name.c_str()));
     for(int i = 0 ; i < argTypes.size() ; i++) {
-        //TODO: use a custom comparer here to ignore array lengths on the arg type
-        if(this->argTypes[i] < other.argTypes[i]) return true;
+        argTypes[i].print();
     }
-
-    return false;
+    debug_print(("\n"));
 }
