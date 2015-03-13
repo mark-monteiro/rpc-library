@@ -26,7 +26,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
 
     // Connect to server
     if((server_sock = connect_to_remote(server_hostname, server_port)) == -1) {
-        debug_print(("Failed to create server socket"));
+        debug_print(("Failed to create server socket\n"));
         return -1;
     }
     debug_print(("rpcInit connected to server on socket %d\n", server_sock));
@@ -57,5 +57,21 @@ int rpcCacheCall(char* name, int* argTypes, void** args) {
 }
 
 int rpcTerminate() {
-    return -1;
+    int binder_sock;
+    Message terminate_message;
+
+    // Connect to binder
+    if((binder_sock = connect_to_binder()) == -1) {
+        debug_print(("Failed to create binder socket\n"));
+        return -1;
+    }
+    debug_print(("rpcTerminate connected to binder on socket %d\n", binder_sock));
+
+    // Create and send message to binder
+    terminate_message.type = TERMINATE;
+    if(terminate_message.send(binder_sock) == false) return -1;
+
+    // Close socket and return
+    close(binder_sock);
+    return 0;
 }
