@@ -11,7 +11,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <limits.h>     //HOST_NAME_MAX
+#include <limits.h>     //HOST_NAME_MAX, SOMAXCONN
 
 #include <errno.h>
 
@@ -123,7 +123,7 @@ int open_connection() {
     }
 
     // Listen for connections
-    if(listen(listener, MAX_CLIENTS) == -1) {
+    if(listen(listener, SOMAXCONN) == -1) {
         perror("listen");
         return -1;
     }
