@@ -6,6 +6,7 @@
 
 #include "debug.h"
 #include "message.h"
+#include "arg_type.h"
 #include "rpc_helpers.h"
 #include "serialize.h"
 #include "rpc.h"
@@ -14,12 +15,13 @@
 using namespace std;
 
 //TODO: maybe these shouldn't be at global scope....
+bool terminate_server = false;
 int binder_sock, listener_sock;
 map<FunctionSignature, skeleton> function_database;
 
 // Forward declarations
 bool processPort(int sock);
-bool terminateServer(Message message, int sock);
+bool terminateServer();
 bool executeRpc(Message message, int sock);
 
 int rpcInit() {
@@ -68,9 +70,6 @@ int rpcRegister(char* name, int* argTypes, skeleton f) {
 }
 
 int rpcExecute() {
-    //TODO: accept connections on listener socket
-    //      accept connection from binder, waiting for terminate message
-
     // select() variables
     fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
@@ -83,7 +82,7 @@ int rpcExecute() {
     fdmax = max(listener_sock, binder_sock);
 
     // main loop
-    while(true) {
+    while(!terminate_server) {
         read_fds = master; // copy it
         if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
             perror("select");
@@ -123,7 +122,12 @@ int rpcExecute() {
             } // END got new incoming connection
         } // END looping through file descriptors
     } // END main loop
-    return -1;
+
+    // TODO: wait for all execution threads to finish
+    // TODO: close all sockets
+    // TODO: send termination response to binder? Do we need to?
+
+    return 0;
 }
 
 bool processPort(int sock) {
@@ -134,7 +138,8 @@ bool processPort(int sock) {
     // Receive message
     if(Message::recv(sock, &recv_message) == false) return false;
 
-    if(sock == binder_sock && recv_message.type == EXECUTE) return terminateServer(recv_message, sock);
+    if(sock == binder_sock && recv_message.type == EXECUTE) return terminateServer();
+    // TODO: execution should happen on a new thread
     else if(recv_message.type == EXECUTE) return executeRpc(recv_message, sock);
     else {
         debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString().c_str()));
@@ -142,10 +147,98 @@ bool processPort(int sock) {
     }
 }
 
-bool terminateServer(Message message, int sock) {
-    return -1;
+bool terminateServer() {
+    // Set flag for accept loop to exit
+    terminate_server = true;
+    return true;
 }
 
-bool executeRpc(Message message, int sock) {
+vector<void*> allocateArgsMemory(vector<int> argTypes) {
+    argTypes.pop_back();   // Remove argTypes null terminator
+    vector<void*> args = vector<void*>(argTypes.size());
+
+    for(unsigned int i = 0 ; i < argTypes.size() ; i++) {
+        ArgType type = ArgType(argTypes[i]);
+
+        switch(type.type) {
+            case ARG_CHAR: args[i] = (void*)new char[type.memoryLength()]; break;
+            case ARG_SHORT: args[i] = (void*)new short[type.memoryLength()]; break;
+            case ARG_INT: args[i] = (void*)new int[type.memoryLength()]; break;
+            case ARG_LONG: args[i] = (void*)new long[type.memoryLength()]; break;
+            case ARG_DOUBLE: args[i] = (void*)new double[type.memoryLength()]; break;
+            case ARG_FLOAT: args[i] = (void*)new float[type.memoryLength()]; break;
+        }
+    }
+
+    return args;
+}
+
+void deleteArgsMemory(vector<int> argTypes, vector<void*> args) {
+    argTypes.pop_back();   // Remove argTypes null terminator
+
+    for(unsigned int i = 0 ; i < argTypes.size() ; i++) {
+        ArgType type = ArgType(argTypes[i]);
+
+        switch(type.type) {
+            case ARG_CHAR: delete[] (char*)(args[i]); break;
+            case ARG_SHORT: delete[] (short*)(args[i]); break;
+            case ARG_INT: delete[] (int*)(args[i]); break;
+            case ARG_LONG: delete[] (long*)(args[i]); break;
+            case ARG_DOUBLE: delete[] (double*)(args[i]); break;
+            case ARG_FLOAT: delete[] (float*)(args[i]); break;
+        }
+    }
+}
+
+bool executeRpcCall(Message recv_message, int sock) {
+    string name;
+    vector<int> argTypes;
+    vector<void*> args, args_copy;
+    vector<char>::iterator index = recv_message.data.begin();
+    skeleton function_pointer;
+    int return_value;
+    Message send_message;
+
+    // Deserialize name, argTypes and args
+    debug_print(("Deserializing message and allocating memory\n"));
+    name = deserializeString(index);
+    argTypes = deserializeArgTypes(index);
+    args = allocateArgsMemory(argTypes);
+    args_copy = args;
+    deserializeArgs(&argTypes[0], true, false, &args[0], index);
+
+    // Get function from database if it exists
+    debug_print(("Getting function pointer from database\n"));
+    map<FunctionSignature, skeleton>::iterator database_result;
+    database_result = function_database.find(FunctionSignature((char*)name.c_str(), argTypes));
+
+    if(database_result == function_database.end()) {
+        debug_print(("Failed to find function signature in database\n"));
+        return_value = -1;
+    }
+    else {
+        // Execute function
+        debug_print(("Executing function\n"));
+        function_pointer = database_result->second;
+        try {
+            return_value = function_pointer(&argTypes[0], &args[0]);
+        } catch (...) {
+            debug_print(("skeleton function threw exception\n"));
+            return_value = -1;
+        }
+    }
+
+    // Send response message to client
+    debug_print(("Sending reply with return value %d\n", return_value));
+    send_message.type = EXECUTE_SUCCESS;
+    send_message.addData(serializeInt(return_value));
+    send_message.addData(serializeArgs(&argTypes[0], false, true, &args[0]));
+    send_message.send(sock);
+
+    // Free memory of args; free a copy in case
+    // any of the pointers were modified by the server functiion
+    debug_print(("Freeing memory\n"));
+    deleteArgsMemory(argTypes, args);
+
     return -1;
 }
