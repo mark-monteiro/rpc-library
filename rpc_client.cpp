@@ -34,6 +34,7 @@ int rpcLocRequest(char* name, int* argTypes) {
     if(send_message.send(binder_sock) == false) return -1;
     if(Message::recv(binder_sock, &recv_message) == false) return -1;
     vector<char>::iterator index = recv_message.data.begin();
+    close(binder_sock);
 
     // Check for request failure
     if(recv_message.type == LOC_FAILURE) {
