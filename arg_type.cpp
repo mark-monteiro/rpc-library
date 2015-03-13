@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "debug.h"
 #include "rpc.h"
 
@@ -13,6 +15,12 @@ ArgType::ArgType(int typeData) {
 
 int ArgType::toInt() {
     return (input << ARG_INPUT) | (output << ARG_OUTPUT) | type << 16 | arrayLength;
+}
+
+// If the array length is set to zero, we have a scalar
+// which is the same as array of length one
+short ArgType::memoryLength() {
+    return std::max(arrayLength, (short)1);
 }
 
 // Note: ignores array length

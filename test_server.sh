@@ -4,5 +4,5 @@
 export BINDER_ADDRESS=mark-VirtualBox
 export BINDER_PORT=$1
 
-#./server
+# ./server
 valgrind --leak-check=yes ./server

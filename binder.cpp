@@ -85,8 +85,10 @@ int main(void) {
 
 bool register_server(Message message, int sock) {
     Message response;
+
     string identifier, name;
-    int port, *argTypes;
+    int port;
+    vector<int> argTypes;
     vector<char>::iterator index = message.data.begin();
 
     identifier = deserializeString(index);
