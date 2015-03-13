@@ -22,7 +22,7 @@ map<FunctionSignature, skeleton> function_database;
 // Forward declarations
 bool processPort(int sock);
 bool terminateServer();
-bool executeRpc(Message message, int sock);
+bool executeRpcCall(Message message, int sock);
 
 int rpcInit() {
     // Create listening socket for clients
@@ -140,7 +140,7 @@ bool processPort(int sock) {
 
     if(sock == binder_sock && recv_message.type == EXECUTE) return terminateServer();
     // TODO: execution should happen on a new thread
-    else if(recv_message.type == EXECUTE) return executeRpc(recv_message, sock);
+    else if(recv_message.type == EXECUTE) return executeRpcCall(recv_message, sock);
     else {
         debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString().c_str()));
         return false;
@@ -238,7 +238,7 @@ bool executeRpcCall(Message recv_message, int sock) {
     // Free memory of args; free a copy in case
     // any of the pointers were modified by the server functiion
     debug_print(("Freeing memory\n"));
-    deleteArgsMemory(argTypes, args);
+    deleteArgsMemory(argTypes, args_copy);
 
     return -1;
 }
