@@ -32,7 +32,7 @@ bool FunctionSignature::operator<(const FunctionSignature &other) const {
 
 void FunctionSignature::print() const {
     debug_print(("%s", name.c_str()));
-    for(int i = 0 ; i < argTypes.size() ; i++) {
+    for(unsigned int i = 0 ; i < argTypes.size() ; i++) {
         argTypes[i].print();
     }
     debug_print(("\n"));

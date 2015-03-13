@@ -83,13 +83,14 @@ string Message::typeToString() {
         case EXECUTE_SUCCESS: return string("EXECUTE_SUCCESS");
         case EXECUTE_FAILURE: return string("EXECUTE_FAILURE");
         case TERMINATE: return string("TERMINATE");
+        default: return string("");
     }
 }
 
 string Message::dataToString(int startIndex) {
     vector<char> data_copy = data;
     //replace null terminators with '|'
-    for(int i = startIndex ; i < length() ; i++)
+    for(unsigned int i = startIndex ; i < length() ; i++)
         if(data_copy[i] == '\0') data_copy[i] = '|';
     return std::string(data_copy.begin(), data_copy.end());
 }
