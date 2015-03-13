@@ -1,6 +1,8 @@
 #include "debug.h"
 #include "rpc.h"
 
+# define debug_print(x) do {} while (0)
+
 #include "arg_type.h"
 
 ArgType::ArgType(int typeData) {
@@ -20,6 +22,14 @@ bool ArgType::operator<(const ArgType &other) const {
     if(input != other.input) return input < other.input;
     else if (output != other.output) return output < other.output;
     else return type < other.type;
+}
+
+bool ArgType::operator==(const ArgType &other) const {
+    return (input == other.input) && (output == other.output) && (type == other.type);
+}
+
+bool ArgType::operator!=(const ArgType &other) const {
+    return (input != other.input) || (output != other.output) || (type != other.type);
 }
 
 void ArgType::print() const {

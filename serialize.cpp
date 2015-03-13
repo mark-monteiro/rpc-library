@@ -10,9 +10,12 @@
 #include <string>
 #include <vector>
 
-#include "debug.h"
+// #include "debug.h"
 
 using namespace std;
+
+# define debug_print(x) do {} while (0)
+
 
 // ** string ** //
 vector<char> serializeString(char *data) {
@@ -94,6 +97,18 @@ int* deserializeArgTypes(vector<char>::iterator &buffer) {
 
     return &argTypes[0];
 }
+vector<int> deserializeArgTypesIntoVector(vector<char>::iterator &buffer) {
+    vector<int> argTypes;
+
+    // Deserialize array
+    while(true) {
+        argTypes.push_back(deserializeInt(buffer));
+        if(argTypes.back() == 0) break;
+    }
+
+    return argTypes;
+}
+
 
 // TODO: implement this
 vector<char> serializeArgs(int **data);

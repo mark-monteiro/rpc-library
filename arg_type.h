@@ -10,6 +10,8 @@ struct ArgType {
     ArgType(int typeData);
     int toInt();
     bool operator<(const ArgType &other) const;
+    bool operator==(const ArgType &other) const;
+    bool operator!=(const ArgType &other) const;
     void print() const;
 };
 

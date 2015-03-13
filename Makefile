@@ -6,7 +6,7 @@ all:
 	# g++ -c $(FLAGS) rpc_client.cpp
 	# g++ -c $(FLAGS) rpc_server.cpp
 	# ar rc rpc.a rpc_server.o rpc_client.o
-	g++ -o binder serialize.cpp rpc_helpers.cpp message.cpp binder.cpp function_signature.cpp
+	g++ -o binder serialize.cpp rpc_helpers.cpp message.cpp binder.cpp function_signature.cpp arg_type.cpp
 
 #TODO: separate into message, helpers, rpc actions
 

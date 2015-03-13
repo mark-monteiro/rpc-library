@@ -25,6 +25,7 @@ float deserializeFloat(std::vector<char>::iterator &buffer);
 
 std::vector<char> serializeArgTypes(int *data);
 int* deserializeArgTypes(std::vector<char>::iterator &buffer);
+std::vector<int> deserializeArgTypesIntoVector(std::vector<char>::iterator &buffer);
 
 std::vector<char> serializeArgs(int **data);
 int** deserializeArgs(std::vector<char>::iterator &buffer); 

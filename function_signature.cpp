@@ -2,9 +2,11 @@
 #include <vector>
 
 #include "arg_type.h"
-#include "debug.h"
+// #include "debug.h"
 
 #include "function_signature.h"
+
+# define debug_print(x) do {} while (0)
 
 using namespace std;
 
@@ -19,6 +21,10 @@ FunctionSignature::FunctionSignature(char *name, int *argTypes) {
 FunctionSignature::FunctionSignature(char *name, vector<int> argTypes) {
     this->name = string(name);
     this->argTypes = vector<ArgType>(argTypes.begin(), argTypes.end());
+}
+
+FunctionSignature::FunctionSignature(){
+
 }
 
 // bool FunctionSignature::operator==(FunctionSignature &other) {
