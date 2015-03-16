@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "error_code.h"
 #include "rpc_helpers.h"
 #include "serialize.h"
 #include "message.h"
@@ -25,9 +26,9 @@ int rpcCall(char* name, int* argTypes, void** args) {
     int server_sock;
 
     // Connect to server
-    if((server_sock = connect_to_remote(server_hostname, server_port)) == -1) {
+    if((server_sock = connect_to_remote(server_hostname, server_port)) < 0) {
         debug_print(("Failed to create server socket\n"));
-        return -1;
+        return server_sock;
     }
     debug_print(("rpcInit connected to server on socket %d\n", server_sock));
 
@@ -40,8 +41,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
     send_message.addData(serializeArgs(argTypes, true, false, args));
 
     // Send message to binder and get response
-    if(send_message.send(server_sock) == false) return -1;
-    if(Message::recv(server_sock, &recv_message) == false) return -1;
+    if(send_message.send(server_sock) == false) return MSG_SEND_ERROR;
+    if(Message::recv(server_sock, &recv_message) == false) return MSG_RECV_ERROR;
 
     // Deserialize the response
     vector<char>::iterator index = recv_message.data.begin();
@@ -53,7 +54,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
 }
 
 int rpcCacheCall(char* name, int* argTypes, void** args) {
-    return -1;
+    return rpcCall(name, argTypes, args);
 }
 
 int rpcTerminate() {
@@ -61,15 +62,15 @@ int rpcTerminate() {
     Message terminate_message;
 
     // Connect to binder
-    if((binder_sock = connect_to_binder()) == -1) {
+    if((binder_sock = connect_to_binder()) < 0) {
         debug_print(("Failed to create binder socket\n"));
-        return -1;
+        return binder_sock;
     }
     debug_print(("rpcTerminate connected to binder on socket %d\n", binder_sock));
 
     // Create and send message to binder
     terminate_message.type = TERMINATE;
-    if(terminate_message.send(binder_sock) == false) return -1;
+    if(terminate_message.send(binder_sock) == false) return MSG_SEND_ERROR;
 
     // Close socket and return
     close(binder_sock);
