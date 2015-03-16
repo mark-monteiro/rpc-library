@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "error_code.h"
 #include "rpc_helpers.h"
 #include "serialize.h"
 #include "message.h"
@@ -25,9 +26,9 @@ int rpcCall(char* name, int* argTypes, void** args) {
     int server_sock;
 
     // Connect to server
-    if((server_sock = connect_to_remote(server_hostname, server_port)) == -1) {
+    if((server_sock = connect_to_remote(server_hostname, server_port)) < 0) {
         debug_print(("Failed to create server socket"));
-        return -1;
+        return server_sock;
     }
     debug_print(("rpcInit connected to server on socket %d\n", server_sock));
 
@@ -40,8 +41,8 @@ int rpcCall(char* name, int* argTypes, void** args) {
     send_message.addData(serializeArgs(argTypes, true, false, args));
 
     // Send message to binder and get response
-    if(send_message.send(server_sock) == false) return -1;
-    if(Message::recv(server_sock, &recv_message) == false) return -1;
+    if(send_message.send(server_sock) == false) return MSG_SEND_ERROR;
+    if(Message::recv(server_sock, &recv_message) == false) return MSG_RECV_ERROR;
 
     // Deserialize the response
     vector<char>::iterator index = recv_message.data.begin();
