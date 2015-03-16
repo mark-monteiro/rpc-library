@@ -18,9 +18,9 @@ bool process_port(int sock);
 
 int main(void) {
     int listener = open_connection();
-    if(listener == -1) {
+    if(listener < 0) {
         debug_print(("Failed to create listening socket"));
-        return -1;
+        return listener;
     }
 
     // Print hostname and port

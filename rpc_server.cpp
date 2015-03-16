@@ -5,6 +5,7 @@
 #include <map>
 
 #include "debug.h"
+#include "error_code.h"
 #include "message.h"
 #include "arg_type.h"
 #include "rpc_helpers.h"
@@ -26,16 +27,16 @@ bool executeRpcCall(Message message, int sock);
 
 int rpcInit() {
     // Create listening socket for clients
-    if((listener_sock = open_connection()) == -1) {
+    if((listener_sock = open_connection()) < 0) {
         debug_print(("Failed to create listener socket"));
-        return -1;
+        return listener_sock;
     }
     debug_print(("rpcInit created listener socket on port %d\n", getPort(listener_sock)));
 
     // Connect to binder
-    if((binder_sock = connect_to_binder()) == -1) {
+    if((binder_sock = connect_to_binder()) < 0) {
         debug_print(("Failed to create binder socket"));
-        return -1;
+        return binder_sock;
     }
     debug_print(("rpcInit connected to binder on socket %d\n", binder_sock));
 
@@ -44,6 +45,7 @@ int rpcInit() {
 
 int rpcRegister(char* name, int* argTypes, skeleton f) {
     // Add function name and skeleton to local database (overwrite if existing)
+    // No need to check for duplicate registration here, the binder can handle that
     function_database[FunctionSignature(name, argTypes)] = f;
 
     Message send_message, recv_message;
@@ -56,12 +58,12 @@ int rpcRegister(char* name, int* argTypes, skeleton f) {
     send_message.addData(serializeArgTypes(argTypes));
 
     // Send message to binder and get response
-    if(send_message.send(binder_sock) == false) return -1;
-    if(Message::recv(binder_sock, &recv_message) == false) return -1;
+    if(send_message.send(binder_sock) == false) return MSG_SEND_ERROR;
+    if(Message::recv(binder_sock, &recv_message) == false) return MSG_RECV_ERROR;
 
     if(recv_message.type != REGISTER_RESPONSE) {
         debug_print(("binder did not send correct response type; expected REGISTER_RESPONSE\n"));
-        return -1;
+        return WRONG_MESSAGE_TYPE;
     }
 
     // Get return value from message and return it
@@ -70,6 +72,9 @@ int rpcRegister(char* name, int* argTypes, skeleton f) {
 }
 
 int rpcExecute() {
+    if(function_database.empty()) return NO_REGISTERED_METHODS;
+    int return_val = 0;
+
     // select() variables
     fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
@@ -86,7 +91,8 @@ int rpcExecute() {
         read_fds = master; // copy it
         if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
             perror("select");
-            exit(4);
+            return_val = SYS_SELECT_ERROR;
+            break;
         }
 
         // run through the existing connections looking for data to read
@@ -115,8 +121,13 @@ int rpcExecute() {
                         debug_print(("processPort failed; closing socket %d\n", fd));
                         close(fd);
                         FD_CLR(fd, &master);
-                        //TODO: exit gracefully
-                        if(fd == binder_sock) exit(-1);
+                        
+                        // If the binder connection was lost, just die
+                        if(fd == binder_sock) {
+                            return_val = BINDER_DIED;
+                            terminate_server = true;
+                            break;
+                        }
                     }
                 } // END handle data from client
             } // END got new incoming connection
@@ -127,7 +138,7 @@ int rpcExecute() {
     // TODO: close all sockets
     // TODO: send termination response to binder? Do we need to?
 
-    return 0;
+    return return_val;
 }
 
 bool processPort(int sock) {
@@ -196,7 +207,7 @@ bool executeRpcCall(Message recv_message, int sock) {
     vector<void*> args, args_copy;
     vector<char>::iterator index = recv_message.data.begin();
     skeleton function_pointer;
-    int return_value;
+    int return_value = 0;
     Message send_message;
 
     // Deserialize name, argTypes and args
@@ -214,7 +225,7 @@ bool executeRpcCall(Message recv_message, int sock) {
 
     if(database_result == function_database.end()) {
         debug_print(("Failed to find function signature in database\n"));
-        return_value = -1;
+        return_value = FUNCTION_NOT_REGISTERED;
     }
     else {
         // Execute function
@@ -222,9 +233,13 @@ bool executeRpcCall(Message recv_message, int sock) {
         function_pointer = database_result->second;
         try {
             return_value = function_pointer(&argTypes[0], &args[0]);
+
+            // Overwrite skeleton method error code with our own
+            if(return_value < 0) return_value = SKELETON_ERROR;
+            if(return_value > 0) return_value = SKELETON_WARNING;
         } catch (...) {
             debug_print(("skeleton function threw exception\n"));
-            return_value = -1;
+            return_value = SKELETON_EXCEPTION;
         }
     }
 
@@ -240,5 +255,5 @@ bool executeRpcCall(Message recv_message, int sock) {
     debug_print(("Freeing memory\n"));
     deleteArgsMemory(argTypes, args_copy);
 
-    return -1;
+    return true;
 }
