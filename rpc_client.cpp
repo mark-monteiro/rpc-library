@@ -20,9 +20,9 @@ int rpcLocRequest(char* name, int* argTypes) {
     Message send_message, recv_message;
 
     // Connect to the binder
-    if((binder_sock = connect_to_binder()) == -1) {
+    if((binder_sock = connect_to_binder()) < 0) {
         debug_print(("Failed to create binder socket"));
-        return -1;
+        return binder_sock;
     }
     debug_print(("rpcLocRequest connected to binder on socket %d\n", binder_sock));
 
@@ -32,8 +32,8 @@ int rpcLocRequest(char* name, int* argTypes) {
     send_message.addData(serializeArgTypes(argTypes));
 
     // Send message and recv response
-    if(send_message.send(binder_sock) == false) return -1;
-    if(Message::recv(binder_sock, &recv_message) == false) return -1;
+    if(send_message.send(binder_sock) == false) return MSG_SEND_ERROR;
+    if(Message::recv(binder_sock, &recv_message) == false) return MSG_RECV_ERROR;
     vector<char>::iterator index = recv_message.data.begin();
     close(binder_sock);
 
@@ -45,6 +45,7 @@ int rpcLocRequest(char* name, int* argTypes) {
     }
     else if(recv_message.type != LOC_SUCCESS) {
         debug_print(("Binder responded wih invalid message type to LOC_REQUEST: %s\n", recv_message.typeToString().c_str()));
+        return WRONG_MESSAGE_TYPE;
     }
 
     // Deserialize response
