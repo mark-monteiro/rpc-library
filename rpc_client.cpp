@@ -53,7 +53,7 @@ int rpcCall(char* name, int* argTypes, void** args) {
 }
 
 int rpcCacheCall(char* name, int* argTypes, void** args) {
-    return -1;
+    return rpcCall(name, argTypes, args);
 }
 
 int rpcTerminate() {
