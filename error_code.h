@@ -2,6 +2,7 @@
 #define ERROR_CODE_H
 
 enum ErrorCode {
+    // ** Errors ** //
     UNKNOWN_ERROR = -100,
     SYS_SOCKET_ERROR,
     SYS_BIND_ERROR,
@@ -16,8 +17,12 @@ enum ErrorCode {
     BINDER_DIED,
     FUNCTION_NOT_REGISTERED,
     SKELETON_EXCEPTION,
+    SKELETON_ERROR,
     MSG_SEND_ERROR,
-    MSG_RECV_ERROR
+    MSG_RECV_ERROR,
+
+    // ** Warnings **//
+    SKELETON_WARNING = 1,
 };
 
 #endif

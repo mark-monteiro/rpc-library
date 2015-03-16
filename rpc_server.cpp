@@ -45,6 +45,7 @@ int rpcInit() {
 
 int rpcRegister(char* name, int* argTypes, skeleton f) {
     // Add function name and skeleton to local database (overwrite if existing)
+    // No need to check for duplicate registration here, the binder can handle that
     function_database[FunctionSignature(name, argTypes)] = f;
 
     Message send_message, recv_message;
@@ -62,7 +63,7 @@ int rpcRegister(char* name, int* argTypes, skeleton f) {
 
     if(recv_message.type != REGISTER_RESPONSE) {
         debug_print(("binder did not send correct response type; expected REGISTER_RESPONSE\n"));
-        return -1;
+        return WRONG_MESSAGE_TYPE;
     }
 
     // Get return value from message and return it
@@ -231,7 +232,11 @@ bool executeRpcCall(Message recv_message, int sock) {
         debug_print(("Executing function\n"));
         function_pointer = database_result->second;
         try {
-            function_pointer(&argTypes[0], &args[0]);
+            return_value = function_pointer(&argTypes[0], &args[0]);
+
+            // Overwrite skeleton method error code with our own
+            if(return_value < 0) return_value = SKELETON_ERROR;
+            if(return_value > 0) return_value = SKELETON_WARNING;
         } catch (...) {
             debug_print(("skeleton function threw exception\n"));
             return_value = SKELETON_EXCEPTION;
