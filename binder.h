@@ -4,6 +4,7 @@
 #include <string.h>
 #include <iostream>
 #include "function_signature.h"
+#include "arg_type.h"
 
 using namespace std;
 
@@ -14,12 +15,16 @@ struct Server{
 	int sock;
 	int port;
 	string id;
+
+	bool operator==(const Server &other) const;
 };
 
 struct FunctionSignatureAndServer{
 	FunctionSignature functionSignature;
 	Server* server;
-	FunctionSignatureAndServer(char*, vector<int>, Server*);
+
+	FunctionSignatureAndServer(char*, vector<ArgType>, Server*);
+	bool operator==(const FunctionSignatureAndServer &other) const;
 };
 
 #endif

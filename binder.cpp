@@ -16,16 +16,42 @@
 #include "serialize.h"
 #include "binder.h"
 #include "function_signature.h"
+#include "arg_type.h"
 
 // #include "debug.h"
 # define debug_print(x) do {} while (0)
 
 using namespace std;
+
 vector<struct Server*> registeredServers;
 vector<FunctionSignatureAndServer> registeredFunctions;
-std::stack<struct Server*> recentlyCalledServers;
+// std::stack<struct Server*> recentlyCalledServers;
+vector<struct Server*>::iterator currServer;
 
-FunctionSignatureAndServer::FunctionSignatureAndServer(char *name, vector<int> argTypes, Server* s) {
+// bool is_equal(vector<int> args1, vector<ArgType> args2) {
+//     for (int i = 0; (i < args1.size()) && (i < args2.size()); i++) {
+//         if (ArgType(args1[i]) != args2[i]) return false;
+//     }
+//     return true;
+// }
+
+bool Server::operator==(const Server &other) const {
+    return sock == other.sock;
+}
+
+bool FunctionSignatureAndServer::operator==(const FunctionSignatureAndServer &other) const {
+    return (other.functionSignature.argTypes == functionSignature.argTypes) && (other.functionSignature.name == functionSignature.name);
+}
+
+bool server_ptr_eq(const Server* first, const Server* second) {
+    return *first == *second;
+}
+
+// bool functionsignatureandserver_ptr_eq(const Server* first, const Server* second) {
+//     return *first == *second;
+// }
+
+FunctionSignatureAndServer::FunctionSignatureAndServer(char *name, vector<ArgType> argTypes, Server* s) {
     functionSignature = FunctionSignature(name, argTypes);
     server = s;
 }
@@ -42,11 +68,13 @@ TYPE* vector_to_array(vector<TYPE> x) {
     return &x[0];
 }
 
-bool is_equal(vector<int> args1, vector<ArgType> args2) {
-    for (int i = 0; (i < args1.size()) && (i < args2.size()); i++) {
-        if (ArgType(args1[i]) != args2[i]) return false;
+void incrementCurrServer(){
+    if (currServer == registeredServers.end()){
+        currServer = registeredServers.begin();
     }
-    return true;
+    else{
+        currServer++;
+    }
 }
 
 
@@ -123,53 +151,49 @@ bool register_server_and_function(Message message, int sock) {
     Message response;
     vector<char>::iterator index;
     char* newFunctionName;
-    vector<int> newFunctionArgTypes;
+    vector<ArgType> newFunctionArgTypes;
     
     struct Server newServer;
+    index = message.data.begin();
+    newServer.id = deserializeString(index);
+    debug_print(("identifier deserialized: %s\n", newServer.id));
+    newServer.port = deserializeInt(index);
+    debug_print(("port deserialized: %d\n", newServer.port));
 
-    // Register server if currServer is not already registered
-    for (vector<struct Server*>::iterator currServer = registeredServers.begin(); currServer != registeredServers.end(); ++currServer) {
-        if (sock == (*currServer)->sock){
-            debug_print(("server previously registered, sockfd: %s\n", sock));
-            break;
-        }
-
-         // Server not already registered, add server to registeredServers
-        if (currServer == registeredServers.end()){
-            // Get id, port and sock from message
-            index = message.data.begin();
-            newServer.id = deserializeString(index);
-            debug_print(("identifier deserialized: %s\n", newServer.id));
-            newServer.port = deserializeInt(index);
-            debug_print(("port deserialized: %d\n", newServer.port));
-            newServer.sock = sock;
-
-            // Add server to the registeredServers vector
-            registeredServers.push_back(&newServer);
+    newServer.sock = sock;
+    
+    // Try to find newServer in registeredServers
+    vector<struct Server*>::iterator findResults = find_if(registeredServers.begin(), registeredServers.end(), bind1st(ptr_fun(server_ptr_eq), &newServer));
+    
+    // If server is not already registered, add server to registeredServers
+    if (findResults == registeredServers.end()){
+        // Add server to the registeredServers vector
+        registeredServers.push_back(&newServer);
+        if (registeredServers.size() == 1){
+            currServer = registeredServers.begin();
         }
     }
-        
+    else{
+        debug_print(("attempt to register already registered server"));
+    }
+
     newFunctionName = string_to_cstring(deserializeString(index));
-    newFunctionArgTypes = deserializeArgTypesIntoVector(index);
+    debug_print(("name deserialized: %s\n", newFunctionName));
+    newFunctionArgTypes = deserializeArgTypes(index);
 
-    debug_print(("name deserialized: %s\n", function_name));
 
+    FunctionSignatureAndServer newFnSignatureAndServer(newFunctionName, newFunctionArgTypes, &newServer);
 
-    // If FunctionSignatureAndServer does not exist in registeredFunctions vector
-    // push FunctionSignatureAndServer into registeredFunctions vector
-    vector<FunctionSignatureAndServer>::iterator currFnServer;
-    for (currFnServer = registeredFunctions.begin(); currFnServer != registeredFunctions.end(); ++currFnServer) {
-        // TODO: fix comparison of functions
-        if ((newFunctionName == (*currFnServer).functionSignature.name) && 
-            is_equal(newFunctionArgTypes, (*currFnServer).functionSignature.argTypes)) {
-            debug_print(("attempt to register already registered function"));
-            break;
-        }
-        
+    // Try to find newFnSignatureAndServer in registeredServers
+    vector<struct FunctionSignatureAndServer>::iterator findResults2 = find(registeredFunctions.begin(), registeredFunctions.end(), newFnSignatureAndServer);
+    
+    // Not found
+    if (findResults2 == registeredFunctions.end()){
         // Push FunctionSignatureAndServer to registeredFunctions vector
-        FunctionSignatureAndServer newFnSignatureAndServer(newFunctionName, newFunctionArgTypes, &newServer);
-
-        if (currFnServer == registeredFunctions.end()) registeredFunctions.push_back(newFnSignatureAndServer);
+        registeredFunctions.push_back(newFnSignatureAndServer);
+    }
+    else{
+        debug_print(("attempt to register already registered function"));
     }
 
 
@@ -182,40 +206,57 @@ bool register_server_and_function(Message message, int sock) {
 bool locate_method_on_server(Message message, int sock) {
     // Searches the database and return the server address
     struct Server* serverPtr = NULL;
-    char *function_name;
-    vector<int> function_argTypes;
+    char *functionName;
+    vector<ArgType> functionArgTypes;
     Message response;
 
     // Loop through registered servers to find the one with socket in message
-    for (vector<struct Server*>::iterator currServer = registeredServers.begin(); 
-        currServer != registeredServers.end(); ++currServer) {
-        if (sock == (*currServer)->sock) {serverPtr = (Server*)(&(*currServer)); break;}
-    }
+    // for ( = registeredServers.begin(); //TODO: round-robin
+    //     currServer != registeredServers.end(); ++currServer) {
+    //     if (sock == (*currServer)->sock) {serverPtr = (Server*)(&(*currServer)); break;}
+    // }
+    
+    
+    
 
-     // Server not found
-    if (!serverPtr) return false;
 
-    // Server found - Get name and argTypes from message
+    // // Server not found
+    // if (!serverPtr) return false;
+
+    // Get name and argTypes from message
     vector<char>::iterator index = message.data.begin();
-    function_name = string_to_cstring(deserializeString(index));
-    debug_print(("name deserialized: %s\n", name));
-    function_argTypes = deserializeArgTypesIntoVector(index);
+    functionName = string_to_cstring(deserializeString(index));
+    debug_print(("name deserialized: %s\n", functionName));
+    functionArgTypes = deserializeArgTypes(index);
 
-
-    // Locate method in registeredFunctions vectpr
+    FunctionSignatureAndServer newFnSignatureAndServer(functionName, functionArgTypes, NULL); // operator== doesn't compare server values
+    // Locate method in registeredFunctions vector
     vector<FunctionSignatureAndServer>::iterator currFnS;
-    for (currFnS = registeredFunctions.begin(); currFnS != registeredFunctions.end(); ++currFnS) {
-        if ((function_name == (*currFnS).functionSignature.name) && 
-            is_equal(function_argTypes, (*currFnS).functionSignature.argTypes)) {
-            // Push to recentlyCalledServers queue???
-            // recentlyCalledServers.push(serverPtr);
-            
-            // Send success response to server
-            response.type = LOC_SUCCESS;
-            response.addData(serializeString(string_to_cstring(serverPtr->id)));
-            response.addData(serializeInt(serverPtr->port));
 
-            return response.send(sock); 
+    Server* currServerInit = *currServer;
+    //TODO: Not the most efficent, will fix later
+    while(true) {
+        for (currFnS = registeredFunctions.begin(); currFnS != registeredFunctions.end(); ++currFnS) { 
+            if ((*currServer == (*currFnS).server) &&
+                (newFnSignatureAndServer == *currFnS)) { 
+                
+                // Send success response to server
+                response.type = LOC_SUCCESS;
+                response.addData(serializeString(string_to_cstring(serverPtr->id)));
+                response.addData(serializeInt(serverPtr->port));
+
+                incrementCurrServer();
+
+                return response.send(sock); 
+            }
+        }
+
+        // Increment server iterator (round-robin)
+        incrementCurrServer();
+
+        //  Function or server not found, break
+        if (*currServer == currServerInit) {
+            break;
         }
     }
 
@@ -224,8 +265,8 @@ bool locate_method_on_server(Message message, int sock) {
     // for that server 
     response.type = LOC_FAILURE;
 
-    // Add failure code
-    // response.addData(serializeInt());
+    // Add failure code (that's it?)
+    response.addData(serializeInt(-1));
 
     return response.send(sock);
 }

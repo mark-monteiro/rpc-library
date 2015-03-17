@@ -13,6 +13,7 @@ struct FunctionSignature {
     FunctionSignature();
     FunctionSignature(char *name, int *argTypes);
     FunctionSignature(char *name, std::vector<int> argTypes);
+    FunctionSignature(char *name, std::vector<ArgType> argTypes);
     // bool operator==(FunctionSignature &other);
     bool operator<(const FunctionSignature &other) const;
     void print() const;

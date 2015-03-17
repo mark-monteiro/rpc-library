@@ -23,6 +23,11 @@ FunctionSignature::FunctionSignature(char *name, vector<int> argTypes) {
     this->argTypes = vector<ArgType>(argTypes.begin(), argTypes.end());
 }
 
+FunctionSignature::FunctionSignature(char *name, vector<ArgType> argTypes) {
+    this->name = string(name);
+    this->argTypes = vector<ArgType>(argTypes.begin(), argTypes.end());
+}
+
 FunctionSignature::FunctionSignature(){
 
 }

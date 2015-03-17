@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "arg_type.h"
 // #include "debug.h"
 
 using namespace std;
@@ -86,29 +87,19 @@ vector<char> serializeArgTypes(int *data) {
 
     return buffer;
 }
-int* deserializeArgTypes(vector<char>::iterator &buffer) {
-    vector<int> argTypes;
+vector<ArgType> deserializeArgTypes(vector<char>::iterator &buffer) {
+    vector<ArgType> argTypes;
 
     // Deserialize array
     while(true) {
-        argTypes.push_back(deserializeInt(buffer));
-        if(argTypes.back() == 0) break;
-    }
-
-    return &argTypes[0];
-}
-vector<int> deserializeArgTypesIntoVector(vector<char>::iterator &buffer) {
-    vector<int> argTypes;
-
-    // Deserialize array
-    while(true) {
-        argTypes.push_back(deserializeInt(buffer));
+        //TODO: the byte order or the argtype might get fucked up by endianess with this method
+        // sol'n: serialize each part of the arg type seperately in its own serialization method
+        argTypes.push_back(ArgType(deserializeInt(buffer)));
         if(argTypes.back() == 0) break;
     }
 
     return argTypes;
 }
-
 
 // TODO: implement this
 vector<char> serializeArgs(int **data);
