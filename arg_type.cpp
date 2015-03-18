@@ -35,11 +35,11 @@ bool ArgType::operator<(const ArgType &other) const {
 }
 
 bool ArgType::operator==(const ArgType &other) const {
-    return (input == other.input) && (output == other.output) && (type == other.type);
+    return (input == other.input) && (output == other.output) && (type == other.type) && (isScalar() == other.isScalar());
 }
 
 bool ArgType::operator!=(const ArgType &other) const {
-    return (input != other.input) || (output != other.output) || (type != other.type);
+    return !(*this == other);
 }
 
 void ArgType::print() const {
