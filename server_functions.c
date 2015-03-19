@@ -32,6 +32,7 @@ char* f2(float a, double b) {
   a = modff(a, &ai);
   b = modf(b, &bi);
 
+  //Note: this is a memory leak >:(
   str1 = (char *)malloc(100);
 
   sprintf(str1, "%lld%lld", (long long)ai, (long long)bi);

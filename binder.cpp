@@ -18,11 +18,7 @@
 #include "server.h"
 #include "function_signature_and_server.h"
 
-// #include "debug.h"
-# define debug_print(x) do {} while (0)
-
 using namespace std;
-
 
 // Keep track of registered servers and registered functions 
 vector<struct Server*> registeredServers;
@@ -50,7 +46,7 @@ bool register_server_and_function(Message message, int sock) {
     struct Server newServer;
     index = message.data.begin();
     newServer.id = deserializeString(index);
-    debug_print(("identifier deserialized: %s\n", newServer.id));
+    debug_print(("identifier deserialized: %s\n", newServer.id.c_str()));
     newServer.port = deserializeInt(index);
     debug_print(("port deserialized: %d\n", newServer.port));
 
@@ -73,7 +69,7 @@ bool register_server_and_function(Message message, int sock) {
 
     newFunctionName = string_to_cstring(deserializeString(index));
     debug_print(("name deserialized: %s\n", newFunctionName));
-    newFunctionArgTypes = deserializeArgTypes(index);
+    newFunctionArgTypes = deserializeArgTypesIntoArgTypeVector(index);
 
 
     FunctionSignatureAndServer newFnSignatureAndServer(newFunctionName, newFunctionArgTypes, &newServer);
@@ -108,13 +104,13 @@ bool locate_method_on_server(Message message, int sock) {
     vector<char>::iterator index = message.data.begin();
     functionName = string_to_cstring(deserializeString(index));
     debug_print(("name deserialized: %s\n", functionName));
-    functionArgTypes = deserializeArgTypes(index);
+    functionArgTypes = deserializeArgTypesIntoArgTypeVector(index);
 
     FunctionSignatureAndServer newFnSignatureAndServer(functionName, functionArgTypes, NULL); // operator== doesn't compare server values
     // Locate method in registeredFunctions vector
     vector<FunctionSignatureAndServer>::iterator currFnS;
 
-    if (*currentServer != NULL) {
+    if (registeredServers.size() > 0) {
         currentServerInit = *currentServer;
         //TODO: Not the most efficent, will fix later
         while(true) {
@@ -168,6 +164,7 @@ bool process_port(int sock) {
     switch(recv_message.type) {
         case REGISTER: return register_server_and_function(recv_message, sock);
         case LOC_REQUEST: return locate_method_on_server(recv_message, sock);
+        case TERMINATE: return locate_method_on_server(recv_message, sock);
 
         default:
         debug_print(("Invalid message type sent to binder: %s\n", recv_message.typeToString().c_str()));
@@ -177,9 +174,9 @@ bool process_port(int sock) {
 
 int main(void) {
     int listener = open_connection();
-    if(listener == -1) {
+    if(listener < 0) {
         debug_print(("Failed to create listening socket"));
-        return -1;
+        return listener;
     }
 
     // Print hostname and port

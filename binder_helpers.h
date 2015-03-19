@@ -5,7 +5,6 @@
 
 #include "server.h"
 
-
 bool server_ptr_eq(const Server* first, const Server* second);
 
 char* string_to_cstring(string s);

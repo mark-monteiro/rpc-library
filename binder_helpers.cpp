@@ -6,7 +6,6 @@
 #include "server.h"
 #include "binder_helpers.h"
 
-
 bool server_ptr_eq(const Server* first, const Server* second) {
     return *first == *second;
 }

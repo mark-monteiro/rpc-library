@@ -1,7 +1,7 @@
-// #include "debug.h"
-#include "rpc.h"
+#include <algorithm>
 
-# define debug_print(x) do {} while (0)
+#include "debug.h"
+#include "rpc.h"
 
 #include "arg_type.h"
 
@@ -17,11 +17,27 @@ int ArgType::toInt() {
     return (input << ARG_INPUT) | (output << ARG_OUTPUT) | type << 16 | arrayLength;
 }
 
-// Note: ignores array length
+// If the array length is set to zero, we have a scalar
+// which is the same as array of length one
+short ArgType::memoryLength() {
+    return std::max(arrayLength, (short)1);
+}
+
+bool ArgType::isScalar() const {
+    return arrayLength == 0;
+}
+
+bool ArgType::isArray() const {
+    return arrayLength != 0;
+}
+
+// Note: ignores array length, but does differentiate
+// between scalar and vector arguments
 bool ArgType::operator<(const ArgType &other) const {
     if(input != other.input) return input < other.input;
     else if (output != other.output) return output < other.output;
-    else return type < other.type;
+    else if (type != other.type) return type < other.type;
+    else return isScalar() < other.isScalar();
 }
 
 bool ArgType::operator==(const ArgType &other) const {
@@ -33,9 +49,9 @@ bool ArgType::operator!=(const ArgType &other) const {
 }
 
 void ArgType::print() const {
-    debug_print(("\tinput:%d\n", input));
-    debug_print(("\toutput:%d\n", output));
-    debug_print(("\targType:%d\n", type));
+    debug_print(("\tinput:%d", input));
+    debug_print(("\toutput:%d", output));
+    debug_print(("\targType:%d", type));
     debug_print(("\tarrayLength:%d\n", arrayLength));
 }
 

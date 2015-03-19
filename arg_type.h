@@ -9,6 +9,9 @@ struct ArgType {
 
     ArgType(int typeData);
     int toInt();
+    short memoryLength();
+    bool isScalar() const;
+    bool isArray() const;
     bool operator<(const ArgType &other) const;
     bool operator==(const ArgType &other) const;
     bool operator!=(const ArgType &other) const;

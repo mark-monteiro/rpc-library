@@ -1,9 +1,0 @@
-#!/bin/bash
-
-# Pass binder port as first argument
-export BINDER_ADDRESS=localhost
-export BINDER_PORT=$1
-
-#./server
-# valgrind --leak-check=yes 
-./server
