@@ -23,11 +23,29 @@ short ArgType::memoryLength() {
     return std::max(arrayLength, (short)1);
 }
 
-// Note: ignores array length
+bool ArgType::isScalar() const {
+    return arrayLength == 0;
+}
+
+bool ArgType::isArray() const {
+    return arrayLength != 0;
+}
+
+// Note: ignores array length, but does differentiate
+// between scalar and vector arguments
 bool ArgType::operator<(const ArgType &other) const {
     if(input != other.input) return input < other.input;
     else if (output != other.output) return output < other.output;
-    else return type < other.type;
+    else if (type != other.type) return type < other.type;
+    else return isScalar() < other.isScalar();
+}
+
+bool ArgType::operator==(const ArgType &other) const {
+    return (input == other.input) && (output == other.output) && (type == other.type);
+}
+
+bool ArgType::operator!=(const ArgType &other) const {
+    return (input != other.input) || (output != other.output) || (type != other.type);
 }
 
 void ArgType::print() const {

@@ -37,3 +37,11 @@ void FunctionSignature::print() const {
     }
     debug_print(("\n"));
 }
+
+FunctionSignature::FunctionSignature(char *name, vector<ArgType> argTypes) {
+    this->name = string(name);
+    this->argTypes = vector<ArgType>(argTypes.begin(), argTypes.end());
+}
+
+FunctionSignature::FunctionSignature(){
+}

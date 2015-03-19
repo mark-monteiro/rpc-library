@@ -99,13 +99,28 @@ vector<char> serializeArgTypes(int *data) {
 
     return buffer;
 }
+
 vector<int> deserializeArgTypes(vector<char>::iterator &buffer) {
     vector<int> argTypes;
-
     // Deserialize array
     while(true) {
         //TODO: the byte order or the argtype might get fucked up by endianess with this method
         // sol'n: serialize each part of the arg type seperately in its own serialization method
+
+        argTypes.push_back(deserializeInt(buffer));
+        if(argTypes.back() == 0) break;
+    }
+
+    return argTypes;
+}
+
+vector<ArgType> deserializeArgTypesIntoArgTypeVector(vector<char>::iterator &buffer) {
+    vector<ArgType> argTypes;
+    // Deserialize array
+    while(true) {
+        //TODO: the byte order or the argtype might get fucked up by endianess with this method
+        // sol'n: serialize each part of the arg type seperately in its own serialization method
+        argTypes.push_back(ArgType(deserializeInt(buffer)));
         argTypes.push_back(deserializeInt(buffer));
         if(argTypes.back() == 0) break;
     }
