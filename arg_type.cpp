@@ -40,6 +40,14 @@ bool ArgType::operator<(const ArgType &other) const {
     else return isScalar() < other.isScalar();
 }
 
+bool ArgType::operator==(const ArgType &other) const {
+    return (input == other.input) && (output == other.output) && (type == other.type);
+}
+
+bool ArgType::operator!=(const ArgType &other) const {
+    return (input != other.input) || (output != other.output) || (type != other.type);
+}
+
 void ArgType::print() const {
     debug_print(("\tinput:%d", input));
     debug_print(("\toutput:%d", output));

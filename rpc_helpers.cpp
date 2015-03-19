@@ -15,6 +15,7 @@
 #include <limits.h>     //HOST_NAME_MAX, SOMAXCONN
 #include <errno.h>
 
+
 //TODO: switch to camelCaps
 
 char* getHostname() {
