@@ -5,4 +5,5 @@ export BINDER_ADDRESS=localhost
 export BINDER_PORT=$1
 
 #./server
-valgrind --leak-check=yes ./server
+# valgrind --leak-check=yes 
+./server

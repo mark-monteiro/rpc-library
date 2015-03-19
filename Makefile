@@ -6,12 +6,12 @@ all:
 	# g++ -c $(FLAGS) rpc_client.cpp
 	# g++ -c $(FLAGS) rpc_server.cpp
 	# ar rc rpc.a rpc_server.o rpc_client.o
-	g++ -o binder serialize.cpp rpc_helpers.cpp message.cpp binder.cpp function_signature.cpp arg_type.cpp
+	g++ -o binder serialize.cpp rpc_helpers.cpp message.cpp binder.cpp function_signature.cpp arg_type.cpp server.cpp function_signature_and_server.cpp binder_helpers.cpp
 
 #TODO: separate into message, helpers, rpc actions
 
 debug:
-	g++ -c $(DEBUG_FLAGS) arg_type.cpp function_signature.cpp serialize.cpp rpc_client.cpp rpc_server.cpp rpc_helpers.cpp message.cpp
+	g++ -c $(DEBUG_FLAGS) arg_type.cpp function_signature.cpp serialize.cpp rpc_client.cpp rpc_server.cpp rpc_helpers.cpp message.cpp server.cpp function_signature_and_server.cpp binder_helpers.cpp
 	ar rc librpc.a arg_type.o function_signature.o serialize.o rpc_helpers.o message.o rpc_server.o rpc_client.o
 	ranlib librpc.a 
 	g++ -o binder $(DEBUG_FLAGS) serialize.cpp rpc_helpers.cpp message.cpp binder.cpp

@@ -1,23 +1,13 @@
-#ifndef BINDER_H
-#define BINDER_H
+#ifndef FUNCTION_SIGNATURE_AND_SERVER_H
+#define FUNCTION_SIGNATURE_AND_SERVER_H
 
-#include <string.h>
-#include <iostream>
+#include <vector>
+
+#include "function_signature_and_server.h"
 #include "function_signature.h"
 #include "arg_type.h"
+#include "server.h"
 
-using namespace std;
-
-
-const int SERVER_NAME_LEN = 400;
-
-struct Server{
-	int sock;
-	int port;
-	string id;
-
-	bool operator==(const Server &other) const;
-};
 
 struct FunctionSignatureAndServer{
 	FunctionSignature functionSignature;
