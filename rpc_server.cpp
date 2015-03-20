@@ -242,7 +242,7 @@ bool executeRpcCall(Message recv_message, int sock) {
 
     if(database_result == function_database.end()) {
         debug_print(("Failed to find function signature in database\n"));
-        return_value = FUNCTION_NOT_REGISTERED;
+        return_value = NOT_REGISTERED_ON_SERVER;
     }
     else {
         // Execute function
