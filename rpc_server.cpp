@@ -20,6 +20,7 @@
 using namespace std;
 
 //TODO: maybe these shouldn't be at global scope....
+bool initialized = false;
 bool terminate_server = false;
 int binder_sock, listener_sock;
 map<FunctionSignature, skeleton> function_database;
@@ -46,10 +47,14 @@ int rpcInit() {
     }
     debug_print(("rpcInit connected to binder on socket %d\n", binder_sock));
 
+    initialized = true;
     return binder_sock;
 }
 
 int rpcRegister(char* name, int* argTypes, skeleton f) {
+    // Make sure we've been initialized
+    if(!initialized) return NOT_INITIALIZED;
+
     // Add function name and skeleton to local database (overwrite if existing)
     // No need to check for duplicate registration here, the binder can handle that
     function_database[FunctionSignature(name, argTypes)] = f;

@@ -8,6 +8,8 @@ using namespace std;
 enum ErrorCode {
     // ** Errors ** //
     UNKNOWN_ERROR = -100,
+
+    // Generic
     SYS_SOCKET_ERROR,
     SYS_BIND_ERROR,
     SYS_LISTEN_ERROR,
@@ -17,14 +19,19 @@ enum ErrorCode {
     MISSING_ENV_VAR,
     INVALID_ADDRESS,
     WRONG_MESSAGE_TYPE,
+    MSG_SEND_ERROR,
+    MSG_RECV_ERROR,
+
+    // Server
+    NOT_INITIALIZED,
     NO_REGISTERED_METHODS,
     BINDER_DIED,
     NOT_REGISTERED_ON_SERVER,
-    NOT_REGISTERED_ON_BINDER,
     SKELETON_EXCEPTION,
     SKELETON_ERROR,
-    MSG_SEND_ERROR,
-    MSG_RECV_ERROR,
+
+    // Binder
+    NOT_REGISTERED_ON_BINDER,
 
     // ** Warnings **//
     SKELETON_WARNING = 1,
