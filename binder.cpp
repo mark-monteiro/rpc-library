@@ -7,6 +7,7 @@
 #include <netdb.h>      //gethostbyname
 #include <algorithm>    //max
 #include <map>          //map
+#include <set>
 
 #include "debug.h"
 #include "error_code.h"
@@ -21,11 +22,11 @@
 using namespace std;
 
 // Keep track of registered servers and registered functions 
-vector<struct Server> registeredServers;
+set<Server> registeredServers;
 vector<FunctionSignatureAndServer> registeredFunctions;
 
 // Round-robin server navigation  
-vector<struct Server>::iterator currentServer;
+set<Server>::iterator currentServer;
 
 // Termination state
 bool terminateBinder = false;
@@ -57,11 +58,12 @@ bool register_server_and_function(Message message, int sock) {
     // Try to find newServer in registeredServers (compare by socket only)
     if (find(registeredServers.begin(), registeredServers.end(), newServer) == registeredServers.end()){
         // Server not already registered; add server to registeredServers
-        registeredServers.push_back(newServer);
+        registeredServers.insert(registeredServers.end(), newServer);
         if (registeredServers.size() == 1){
             currentServer = registeredServers.begin();
+            debug_print(("Initialized current server iterator\n"));
         }
-        debug_print(("registered server on socket %d\n", registeredServers.back().sock));
+        debug_print(("registered server on socket %d\n", newServer.sock));
     }
     else debug_print(("server already registered\n"));
 
@@ -142,11 +144,11 @@ bool locate_method_on_server(Message message, int sock) {
 
 bool send_terminate_message_to_servers() {
     // Send termination message to each server
-    for (int i = 0 ; i < registeredServers.size() ; i++) { 
+    for (set<Server>::iterator i = registeredServers.begin() ; i != registeredServers.end() ; i++) {
         Message response;
         response.type = TERMINATE;
-        response.send(registeredServers[i].sock);
-        debug_print(("Sent termination message on socket %d\n", registeredServers[i].sock));
+        response.send(i->sock);
+        debug_print(("Sent termination message on socket %d\n", i->sock));
     }   
 
     // Set termination flag
@@ -242,7 +244,7 @@ int main(void) {
                         // Find server in server database
                         Server query;
                         query.sock = fd;
-                        vector<struct Server>::iterator server;
+                        set<Server>::iterator server;
                         server = find(registeredServers.begin(), registeredServers.end(), query);
 
                         // Erase the server, keeping round-robin iterator valid
@@ -271,7 +273,7 @@ int main(void) {
 
                     // If all the servers have gone away, we are done terminating
                     // TODO: some clients might not have closed their connections yet...
-                    if (terminateBinder && registeredServers.size() == 0) {
+                    if (terminateBinder && registeredServers.empty()) {
                         debug_print(("Termination complete...exiting\n"));
                         return 0;
                     }
