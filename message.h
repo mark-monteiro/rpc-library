@@ -20,7 +20,6 @@ enum Msg_Type {
 
 struct Message {
     Msg_Type type;
-    int len;
     std::vector<char> data;
 
     uint32_t length();

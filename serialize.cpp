@@ -106,7 +106,6 @@ vector<int> deserializeArgTypes(vector<char>::iterator &buffer) {
     while(true) {
         //TODO: the byte order or the argtype might get fucked up by endianess with this method
         // sol'n: serialize each part of the arg type seperately in its own serialization method
-
         argTypes.push_back(deserializeInt(buffer));
         if(argTypes.back() == 0) break;
     }
@@ -121,7 +120,6 @@ vector<ArgType> deserializeArgTypesIntoArgTypeVector(vector<char>::iterator &buf
         //TODO: the byte order or the argtype might get fucked up by endianess with this method
         // sol'n: serialize each part of the arg type seperately in its own serialization method
         argTypes.push_back(ArgType(deserializeInt(buffer)));
-        argTypes.push_back(deserializeInt(buffer));
         if(argTypes.back() == 0) break;
     }
 
