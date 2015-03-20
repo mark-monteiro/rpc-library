@@ -28,7 +28,7 @@ vector<FunctionSignatureAndServer> registeredFunctions;
 vector<struct Server>::iterator currentServer;
 
 // Termination state
-int terminateBinder = 0;
+bool terminateBinder = false;
 
 // Increment currentServer iterator
 // Will break if currentServer points to registeredServers.end()
@@ -141,14 +141,16 @@ bool locate_method_on_server(Message message, int sock) {
 }
 
 bool send_terminate_message_to_servers() {
-    Message response;
-    
-    // Send termination messag to each server
-    for (vector<Server*>::iterator s = registeredServers.begin(); s != registeredServers.end(); ++s) { 
+    // Send termination message to each server
+    for (int i = 0 ; i < registeredServers.size() ; i++) { 
+        Message response;
         response.type = EXECUTE;
-        response.send((*s)->sock);
+        response.send(registeredServers[i].sock);
+        debug_print(("Sent termination message on socket %d\n", registeredServers[i].sock));
     }   
-    terminateBinder = 1;
+
+    // Set termination flag
+    terminateBinder = true;
 
     // Return and wait for all servers to terminate
     // Termination of binder happens in main/select, when registeredServers is empty
@@ -170,7 +172,7 @@ bool process_port(int sock) {
     switch(recv_message.type) {
         case REGISTER: return register_server_and_function(recv_message, sock);
         case LOC_REQUEST: return locate_method_on_server(recv_message, sock);
-        case TERMINATE: return locate_method_on_server(recv_message, sock);
+        case TERMINATE: return send_terminate_message_to_servers();
 
         default:
         debug_print(("Invalid message type sent to binder: %s\n", recv_message.typeToString().c_str()));
@@ -215,6 +217,7 @@ int main(void) {
         for(int fd = 0; fd <= fdmax; fd++) {
             if (FD_ISSET(fd, &read_fds)) {
                 // Handle new connections
+                // TODO: should we accept new connections while terminating?
                 if (fd == listener) { 
                     struct sockaddr_storage remoteaddr;
                     socklen_t addr_len = sizeof remoteaddr;
@@ -238,8 +241,13 @@ int main(void) {
                         close(fd);
                         FD_CLR(fd, &client_fds);
                     }
-                    //TODO: close client connection?
-                    if (terminateBinder == 1 && registeredServers.size() == 0) return 0; 
+
+                    // If all the servers have gone away, we are done terminating
+                    // TODO: some clients might not have closed their connections yet...
+                    if (terminateBinder && registeredServers.size() == 0) {
+                        debug_print(("Termination complete...exiting\n"));
+                        return 0;
+                    }
                 } // END handle data from client
             } // END got new incoming connection
         } // END looping through file descriptors
