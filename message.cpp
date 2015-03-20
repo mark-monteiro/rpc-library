@@ -78,6 +78,7 @@ string Message::typeToString() {
         case REGISTER_RESPONSE: return string("REGISTER_RESPONSE");
         case LOC_REQUEST: return string("LOC_REQUEST");
         case LOC_SUCCESS: return string("LOC_SUCCESS");
+        case LOC_CACHE_REQUEST: return string("LOC_CACHE_REQUEST");
         case LOC_FAILURE: return string("LOC_FAILURE");
         case EXECUTE: return string("EXECUTE");
         case EXECUTE_SUCCESS: return string("EXECUTE_SUCCESS");
