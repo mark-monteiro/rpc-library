@@ -11,6 +11,7 @@ struct Server{
     string id;
 
     bool operator==(const Server &other) const;
+    bool operator<(const Server &other) const;
     void print() const;
 };
 
