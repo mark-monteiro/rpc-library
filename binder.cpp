@@ -27,6 +27,9 @@ vector<FunctionSignatureAndServer> registeredFunctions;
 // Round-robin server navigation  
 vector<struct Server>::iterator currentServer;
 
+// Termination state
+int terminateBinder = 0;
+
 // Increment currentServer iterator
 // Will break if currentServer points to registeredServers.end()
 void nextServer(){
@@ -137,6 +140,21 @@ bool locate_method_on_server(Message message, int sock) {
     return response.send(sock);
 }
 
+bool send_terminate_message_to_servers() {
+    Message response;
+    
+    // Send termination messag to each server
+    for (vector<Server*>::iterator s = registeredServers.begin(); s != registeredServers.end(); ++s) { 
+        response.type = EXECUTE;
+        response.send((*s)->sock);
+    }   
+    terminateBinder = 1;
+
+    // Return and wait for all servers to terminate
+    // Termination of binder happens in main/select, when registeredServers is empty
+    return true;
+}
+
 // Handle incoming data on a socket
 // Receives the next message on that socket,
 // and calls a handler based on the message type
@@ -220,6 +238,8 @@ int main(void) {
                         close(fd);
                         FD_CLR(fd, &client_fds);
                     }
+                    //TODO: close client connection?
+                    if (terminateBinder == 1 && registeredServers.size() == 0) return 0; 
                 } // END handle data from client
             } // END got new incoming connection
         } // END looping through file descriptors
