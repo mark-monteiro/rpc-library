@@ -2,14 +2,15 @@
 #define MESSAGE_H
 
 #include <stdint.h>
+#include <string>
 #include <vector>
 #include <list>
 
 enum Msg_Type {
     REGISTER,
-    REGISTER_SUCCESS,
-    REGISTER_FAILURE,
+    REGISTER_RESPONSE,
     LOC_REQUEST,
+    LOC_CACHE_REQUEST,
     LOC_SUCCESS,
     LOC_FAILURE,
     EXECUTE,
@@ -27,8 +28,8 @@ struct Message {
     void addData(char);
     bool send(int sock);
     static bool recv(int sock, Message *message);
-    char* typeToString();
-    const char* dataToString(int startIndex = 0);
+    std::string typeToString();
+    std::string dataToString(int startIndex = 0);
     void print();
 };
 

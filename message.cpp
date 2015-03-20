@@ -13,13 +13,15 @@
 #include <string>
 #include <vector>
 
-// The length of the message is defined by the aggregate size of the data vectors
+using namespace std;
+
+// The length of the message is defined by the size of the vector
 uint32_t Message::length() {
     return data.size();
 }
 
 // Append new vector to data buffer
-void Message::addData(std::vector<char> newData) {
+void Message::addData(vector<char> newData) {
     data.insert(data.end(), newData.begin(), newData.end());
 }
 
@@ -33,21 +35,21 @@ bool Message::send(int sock) {
 
     // Write message length
     network_byte_order = htonl(length());
-    if(send_all(sock, (char*)&network_byte_order, 4) == -1) return false;
+    if(send_all(sock, (char*)&network_byte_order, 4) < 0) return false;
 
     // Write message type
     network_byte_order = htonl(type);
-    if(send_all(sock, (char*)&network_byte_order, 4) == -1) return false;
+    if(send_all(sock, (char*)&network_byte_order, 4) < 0) return false;
 
     // Write Data
-    if(length() > 0 && send_all(sock, (char*)&data[0], length()) == -1) return false;
+    if(length() > 0 && send_all(sock, (char*)&data[0], length()) < 0) return false;
 
     debug_print(("Sent message successfully:\n"));
     print();
     return true;
 }
 
-// Create a message by reading from  the specified socket and return it
+// Create a message by reading from the specified socket and return it
 // Return null pointer on failure
 bool Message::recv(int sock, Message *message) {
     char header[4];
@@ -70,32 +72,33 @@ bool Message::recv(int sock, Message *message) {
     return true;
 }
 
-char* Message::typeToString() {
+string Message::typeToString() {
     switch(type) {
-        case REGISTER: return (char*)"REGISTER";
-        case REGISTER_SUCCESS: return (char*)"REGISTER_SUCCESS";
-        case REGISTER_FAILURE: return (char*)"REGISTER_FAILURE";
-        case LOC_REQUEST: return (char*)"LOC_REQUEST";
-        case LOC_SUCCESS: return (char*)"LOC_SUCCESS";
-        case LOC_FAILURE: return (char*)"LOC_FAILURE";
-        case EXECUTE: return (char*)"EXECUTE";
-        case EXECUTE_SUCCESS: return (char*)"EXECUTE_SUCCESS";
-        case EXECUTE_FAILURE: return (char*)"EXECUTE_FAILURE";
-        case TERMINATE: return (char*)"TERMINATE";
+        case REGISTER: return string("REGISTER");
+        case REGISTER_RESPONSE: return string("REGISTER_RESPONSE");
+        case LOC_REQUEST: return string("LOC_REQUEST");
+        case LOC_SUCCESS: return string("LOC_SUCCESS");
+        case LOC_CACHE_REQUEST: return string("LOC_CACHE_REQUEST");
+        case LOC_FAILURE: return string("LOC_FAILURE");
+        case EXECUTE: return string("EXECUTE");
+        case EXECUTE_SUCCESS: return string("EXECUTE_SUCCESS");
+        case EXECUTE_FAILURE: return string("EXECUTE_FAILURE");
+        case TERMINATE: return string("TERMINATE");
+        default: return string("<unkown type>");
     }
 }
 
-const char* Message::dataToString(int startIndex) {
-    std::vector<char> data_copy = data;
+string Message::dataToString(int startIndex) {
+    vector<char> data_copy = data;
     //replace null terminators with '|'
-    for(int i = startIndex ; i < length() ; i++)
+    for(unsigned int i = startIndex ; i < length() ; i++)
         if(data_copy[i] == '\0') data_copy[i] = '|';
-    return std::string(data_copy.begin(), data_copy.end()).c_str();
+    return std::string(data_copy.begin(), data_copy.end());
 }
 
 void Message::print() {
     debug_print(("\tlength: %d\n", length()));
-    debug_print(("\ttype: %s\n", typeToString()));
+    debug_print(("\ttype: %s\n", typeToString().c_str()));
     //TODO: print data better
-    debug_print(("\tdata: %s\n", dataToString()));
+    debug_print(("\tdata: %s\n", dataToString().c_str()));
 }

@@ -1,5 +1,6 @@
 //TODO: rename to socket_helpers
 
+#include "error_code.h"
 #include "rpc_helpers.h"
 #include "debug.h"
 
@@ -11,11 +12,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <limits.h>     //HOST_NAME_MAX
-
+#include <limits.h>     //HOST_NAME_MAX, SOMAXCONN
 #include <errno.h>
-
-//TODO: switch to camelCaps
 
 char* getHostname() {
     // Print this machine's hostname
@@ -32,13 +30,14 @@ int getPort(int sock) {
     memset(&sa, 0, sa_len);
     if (getsockname(sock, (struct sockaddr *)&sa, &sa_len) == -1) {
         perror("getsockname");
+        //TODO: don't exit here
         exit(2);
     }
     return ntohs(sa.sin_port);
 }
 
 // Connects to the binder and returns a socket file descriptor
-int connect_to_remote(char *hostname, char *port) {
+int connect_to_remote(const char *hostname, const char *port) {
     int sock;  
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -49,8 +48,8 @@ int connect_to_remote(char *hostname, char *port) {
 
     //get list of addresses we can connect to for this destination
     if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-        debug_print(("connect_to_binder: getaddrinfo: %s\n", gai_strerror(rv)));
-        return -1;
+        debug_print(("connect_to_remote: getaddrinfo: %s\n", gai_strerror(rv)));
+        return INVALID_ADDRESS;
     }
 
     // loop through all the results and connect to the first we can
@@ -58,14 +57,14 @@ int connect_to_remote(char *hostname, char *port) {
         //create socket
         if ((sock = socket(p->ai_family, p->ai_socktype,
             p->ai_protocol)) == -1) {
-            perror("connect_to_binder: failed to create socket");
+            perror("connect_to_remote: failed to create socket");
             continue;
         }
 
         //connect to socket
         if (connect(sock, p->ai_addr, p->ai_addrlen) == -1) {
             close(sock);
-            perror("connect_to_binder: failed to connect socket");
+            perror("connect_to_remote: failed to connect socket");
             continue;
         }
 
@@ -75,7 +74,7 @@ int connect_to_remote(char *hostname, char *port) {
     //make sure we connected to one of the results
     if (p == NULL) {
         debug_print(("failed to connect to binder\n"));
-        return -1;
+        return INVALID_ADDRESS;
     }
 
     freeaddrinfo(servinfo); // all done with this structure
@@ -89,7 +88,7 @@ int connect_to_binder() {
     
     if (binder_hostname == NULL || binder_port == NULL) {
         debug_print(("connect_to_binder: BINDER_ADDRESS and BINDER_PORT environment variables must be set\n"));
-        return -1;
+        return MISSING_ENV_VAR;
     }
 
     return connect_to_remote(binder_hostname, binder_port);
@@ -113,19 +112,19 @@ int open_connection() {
     // Create socket
     if((listener = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket");
-        return -1;
+        return SYS_SOCKET_ERROR;
     }
 
     // Bind to socket
     if(bind(listener, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         perror("bind");
-        return -1;
+        return SYS_BIND_ERROR;
     }
 
     // Listen for connections
-    if(listen(listener, MAX_CLIENTS) == -1) {
+    if(listen(listener, SOMAXCONN) == -1) {
         perror("listen");
-        return -1;
+        return SYS_LISTEN_ERROR;
     }
 
     return listener;
@@ -147,10 +146,10 @@ int process_all(int sock, char *buf, int len, bool receiving) {
             n = send(sock, buf+bytes_completed, bytes_left, 0);
 
         // Return on error
-        if(n == -1) {
+        if(n < 0) {
             perror("process_all");
             debug_print(("errno=%d\n", errno));
-            return -1;
+            return n;
         }
 
         // Return if remote port closed connection
