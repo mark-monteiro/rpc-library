@@ -144,7 +144,7 @@ bool send_terminate_message_to_servers() {
     // Send termination message to each server
     for (int i = 0 ; i < registeredServers.size() ; i++) { 
         Message response;
-        response.type = EXECUTE;
+        response.type = TERMINATE;
         response.send(registeredServers[i].sock);
         debug_print(("Sent termination message on socket %d\n", registeredServers[i].sock));
     }   
@@ -237,6 +237,33 @@ int main(void) {
                 // Handle data from a connection
                 else {
                     if(process_port(fd) == false) {
+                        // Remote end closed connection or, something else went wrong
+
+                        // Find server in server database
+                        Server query;
+                        query.sock = fd;
+                        vector<struct Server>::iterator server;
+                        server = find(registeredServers.begin(), registeredServers.end(), query);
+
+                        // Erase the server, keeping round-robin iterator valid
+                        if(server != registeredServers.end()) {
+                            debug_print(("Removing server on socket %d\n", server->sock));
+                            if(server == currentServer) nextServer();
+                            registeredServers.erase(server);
+                            if(registeredServers.empty()) currentServer = registeredServers.end();
+                        }
+
+                        //Remove from function database
+                        for(vector<FunctionSignatureAndServer>::iterator i = registeredFunctions.begin(); i != registeredFunctions.end();) {
+                            if(i->server.sock == fd) {
+                                // Erase the function, keeping the iterator i valid
+                                debug_print(("Erasing function %s for socket %d\n", i->functionSignature.name.c_str(), i->server.sock));
+                                i = registeredFunctions.erase(i);
+                            }
+                            else i++;
+                        }
+
+                        // Close socket
                         debug_print(("process_port failed; closing socket %d\n", fd));
                         close(fd);
                         FD_CLR(fd, &client_fds);
