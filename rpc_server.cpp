@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <algorithm>    //for_each
+#include "pthread.h"
 
 #include "debug.h"
 #include "error_code.h"
@@ -124,10 +125,10 @@ int rpcExecute() {
                 }
                 // Handle data from a client
                 else {
-                    if(processPort(fd) == false) {
+                    pthread_t exec_thread;
+                    if(processPort(fd, &exec_thread) == false) {
                         debug_print(("processPort failed; closing socket %d\n", fd));
-                        //TODO: fix
-                        ////close(fd);
+                        close(fd);
                         FD_CLR(fd, &master);
                         read_fd_set.erase(fd);
 
@@ -143,6 +144,8 @@ int rpcExecute() {
     } // END main loop
 
     // TODO: wait for all execution threads to finish
+    
+
 
     // Close all sockets
     for_each(read_fd_set.begin(), read_fd_set.end(), close);
@@ -150,7 +153,7 @@ int rpcExecute() {
     return return_val;
 }
 
-bool processPort(int sock) {
+bool processPort(int sock, pthread_t &exec_thread) {
     Message recv_message;
     debug_print(("--------------------------------------\n"));
     debug_print(("Processing request on socket %d\n", sock));
@@ -161,7 +164,14 @@ bool processPort(int sock) {
     if(recv_message.type == TERMINATE) return terminateServer(sock);
     // TODO: execution should happen on a new thread
     //       so that long-running methods don't block the entire server
-    else if(recv_message.type == EXECUTE) return executeRpcCall(recv_message, sock);
+    
+    
+
+    else if(recv_message.type == EXECUTE) {
+        pair<Message, int>* arguments = new pair<Message, int>(recv_message, sock);
+        pthread_create(&exec_thread, NULL, executeRpcCall, (void*) arguments);
+        return executeRpcCall(recv_message, sock);
+    }
     else {
         debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString().c_str()));
         return false;
@@ -219,7 +229,11 @@ void deleteArgsMemory(vector<int> argTypes, vector<void*> args) {
     }
 }
 
-bool executeRpcCall(Message recv_message, int sock) {
+void* executeRpcCall(void* thread_args){ 
+    pair<Message, int> arguments = *((pair<Message, int> *) thread_args);
+    Message recv_message = arguments.first;
+    int sock = arguments.second;
+
     string name;
     vector<int> argTypes;
     vector<void*> args, args_copy;
@@ -273,5 +287,7 @@ bool executeRpcCall(Message recv_message, int sock) {
     debug_print(("Freeing memory\n"));
     deleteArgsMemory(argTypes, args_copy);
 
-    return true;
+    delete (pair<Message, int> *)thread_args;
+
+    return (void*)NULL;
 }
