@@ -5,7 +5,7 @@
 #include <vector>
 #include "arg_type.h"
 
-std::vector<char> serializeString(char *data);
+std::vector<char> serializeString(const char *data);
 std::string deserializeString(std::vector<char>::iterator &buffer);
 
 std::vector<char> serializeChar(char data);

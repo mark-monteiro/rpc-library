@@ -11,10 +11,11 @@
 
 struct FunctionSignatureAndServer{
 	FunctionSignature functionSignature;
-	Server* server;
+	Server server;
 
-	FunctionSignatureAndServer(char*, vector<ArgType>, Server*);
+	FunctionSignatureAndServer(string, vector<ArgType>, Server);
 	bool operator==(const FunctionSignatureAndServer &other) const;
+    void print() const;
 };
 
 #endif
