@@ -24,7 +24,8 @@ clean:
 
 # Run this before submitting to remove any unecessary files
 submit_clean: clean
-	-rm server*
-	-rm client*
+	-rm server.c
+	-rm server_function*
+	-rm client1.c
 	-rm test*
 	-rm .gitignore

@@ -142,6 +142,38 @@ bool locate_method_on_server(Message message, int sock) {
     return response.send(sock);
 }
 
+bool return_method_cache(Message message, int sock) {
+    FunctionSignature query;
+    vector<Server> results;
+    Message response;
+
+    // Get function signature from message
+    vector<char>::iterator index = message.data.begin();
+    query = FunctionSignature(deserializeString(index), deserializeArgTypes(index));
+
+    //Return each server with this signature
+    for(unsigned int i = 0 ; i < registeredFunctions.size(); i++) {
+        if(registeredFunctions[i].functionSignature == query)
+            results.push_back(registeredFunctions[i].server);
+    }
+
+    if(results.empty()) {
+        // This function has not been registered, return failure
+        response.type = LOC_FAILURE;
+        response.addData(serializeInt(NOT_REGISTERED_ON_BINDER));
+        return response.send(sock);
+    }
+
+    //Create and send the response message
+    response.type = LOC_SUCCESS;
+    response.addData(serializeInt(results.size()));
+    for(unsigned int i = 0 ; i < results.size() ; i++) {
+        response.addData(serializeString(results[i].id.c_str()));
+        response.addData(serializeInt(results[i].port));
+    }
+    return response.send(sock);
+}
+
 bool send_terminate_message_to_servers() {
     // Send termination message to each server
     for (set<Server>::iterator i = registeredServers.begin() ; i != registeredServers.end() ; i++) {
@@ -174,6 +206,7 @@ bool process_port(int sock) {
     switch(recv_message.type) {
         case REGISTER: return register_server_and_function(recv_message, sock);
         case LOC_REQUEST: return locate_method_on_server(recv_message, sock);
+        case LOC_CACHE_REQUEST: return return_method_cache(recv_message, sock);
         case TERMINATE: return send_terminate_message_to_servers();
 
         default:
