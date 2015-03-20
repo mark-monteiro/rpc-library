@@ -19,7 +19,7 @@ using namespace std;
 // ** string ** //
 // NOTE: this method only works for null terminated string;
 // any string with multiple null character will be cut off at the first one
-vector<char> serializeString(char *data) {
+vector<char> serializeString(const char *data) {
     // NOTE: must include null terminator for deserialization
     return vector<char>(data, data + strlen(data) + 1);
 }
