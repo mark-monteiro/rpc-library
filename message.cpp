@@ -49,7 +49,7 @@ bool Message::send(int sock) {
     return true;
 }
 
-// Create a message by reading from  the specified socket and return it
+// Create a message by reading from the specified socket and return it
 // Return null pointer on failure
 bool Message::recv(int sock, Message *message) {
     char header[4];

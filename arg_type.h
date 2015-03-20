@@ -13,6 +13,8 @@ struct ArgType {
     bool isScalar() const;
     bool isArray() const;
     bool operator<(const ArgType &other) const;
+    bool operator==(const ArgType &other) const;
+    bool operator!=(const ArgType &other) const;
     void print() const;
 };
 
