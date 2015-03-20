@@ -144,7 +144,7 @@ bool send_terminate_message_to_servers() {
     // Send termination message to each server
     for (int i = 0 ; i < registeredServers.size() ; i++) { 
         Message response;
-        response.type = EXECUTE;
+        response.type = TERMINATE;
         response.send(registeredServers[i].sock);
         debug_print(("Sent termination message on socket %d\n", registeredServers[i].sock));
     }   

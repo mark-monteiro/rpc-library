@@ -126,6 +126,7 @@ int rpcExecute() {
                 else {
                     if(processPort(fd) == false) {
                         debug_print(("processPort failed; closing socket %d\n", fd));
+                        //TODO: fix
                         ////close(fd);
                         FD_CLR(fd, &master);
                         read_fd_set.erase(fd);
