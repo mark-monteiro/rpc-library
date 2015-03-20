@@ -13,10 +13,9 @@
 #include <string>
 #include <vector>
 
-#define debug_print(x) printf x
 using namespace std;
 
-// The length of the message is defined by the aggregate size of the data vectors
+// The length of the message is defined by the size of the vector
 uint32_t Message::length() {
     return data.size();
 }
@@ -36,14 +35,14 @@ bool Message::send(int sock) {
 
     // Write message length
     network_byte_order = htonl(length());
-    if(send_all(sock, (char*)&network_byte_order, 4) == -1) return false;
+    if(send_all(sock, (char*)&network_byte_order, 4) < 0) return false;
 
     // Write message type
     network_byte_order = htonl(type);
-    if(send_all(sock, (char*)&network_byte_order, 4) == -1) return false;
+    if(send_all(sock, (char*)&network_byte_order, 4) < 0) return false;
 
     // Write Data
-    if(length() > 0 && send_all(sock, (char*)&data[0], length()) == -1) return false;
+    if(length() > 0 && send_all(sock, (char*)&data[0], length()) < 0) return false;
 
     debug_print(("Sent message successfully:\n"));
     print();
@@ -84,13 +83,14 @@ string Message::typeToString() {
         case EXECUTE_SUCCESS: return string("EXECUTE_SUCCESS");
         case EXECUTE_FAILURE: return string("EXECUTE_FAILURE");
         case TERMINATE: return string("TERMINATE");
+        default: return string("<unkown type>");
     }
 }
 
 string Message::dataToString(int startIndex) {
     vector<char> data_copy = data;
     //replace null terminators with '|'
-    for(int i = startIndex ; i < length() ; i++)
+    for(unsigned int i = startIndex ; i < length() ; i++)
         if(data_copy[i] == '\0') data_copy[i] = '|';
     return std::string(data_copy.begin(), data_copy.end());
 }

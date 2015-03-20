@@ -1,9 +1,6 @@
 #ifndef RPC_HELPERS_H
 #define RPC_HELPERS_H
 
-// TODO: get rid of this
-#define MAX_CLIENTS 5
-
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa);
 
