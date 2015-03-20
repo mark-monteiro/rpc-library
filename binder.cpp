@@ -152,7 +152,7 @@ bool return_method_cache(Message message, int sock) {
     query = FunctionSignature(deserializeString(index), deserializeArgTypes(index));
 
     //Return each server with this signature
-    for(int i = 0 ; i < registeredFunctions.size(); i++) {
+    for(unsigned int i = 0 ; i < registeredFunctions.size(); i++) {
         if(registeredFunctions[i].functionSignature == query)
             results.push_back(registeredFunctions[i].server);
     }
@@ -167,7 +167,7 @@ bool return_method_cache(Message message, int sock) {
     //Create and send the response message
     response.type = LOC_SUCCESS;
     response.addData(serializeInt(results.size()));
-    for(int i = 0 ; i < results.size() ; i++) {
+    for(unsigned int i = 0 ; i < results.size() ; i++) {
         response.addData(serializeString(results[i].id.c_str()));
         response.addData(serializeInt(results[i].port));
     }
