@@ -16,7 +16,7 @@ using namespace::std;
 // or an error code <1 if something went wrong
 int rpcLocRequest(char* name, int* argTypes) {
     int binder_sock, server_sock;
-    char *server_hostname, *server_port;
+    string server_hostname, server_port;
     Message send_message, recv_message;
 
     // Connect to the binder
@@ -49,12 +49,12 @@ int rpcLocRequest(char* name, int* argTypes) {
     }
 
     // Deserialize response
-    server_hostname = (char*)deserializeString(index).c_str();
-    server_port = (char*)deserializeString(index).c_str();
+    server_hostname = deserializeString(index);
+    server_port = deserializeString(index);
 
     // Connect to server
-    if((server_sock = connect_to_remote(server_hostname, server_port)) < 0) {
-        debug_print(("Failed to create server socket"));
+    if((server_sock = connect_to_remote(server_hostname.c_str(), server_port.c_str())) < 0) {
+        debug_print(("Failed to create server socket: %d\n", server_sock));
         return server_sock;
     }
     debug_print(("rpcLocRequest connected to server on socket %d\n", server_sock));
@@ -97,6 +97,21 @@ int rpcCacheCall(char* name, int* argTypes, void** args) {
 }
 
 int rpcTerminate() {
+    int binder_sock;
+    Message terminate_message;
 
-    return -1;
+    // Connect to binder
+    if((binder_sock = connect_to_binder()) < 0) {
+        debug_print(("Failed to create binder socket\n"));
+        return binder_sock;
+    }
+    debug_print(("rpcTerminate connected to binder on socket %d\n", binder_sock));
+
+    // Create and send message to binder
+    terminate_message.type = TERMINATE;
+    if(terminate_message.send(binder_sock) == false) return MSG_SEND_ERROR;
+
+    // Close socket and return
+    close(binder_sock);
+    return 0;
 }

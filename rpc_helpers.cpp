@@ -15,8 +15,6 @@
 #include <limits.h>     //HOST_NAME_MAX, SOMAXCONN
 #include <errno.h>
 
-//TODO: switch to camelCaps
-
 char* getHostname() {
     // Print this machine's hostname
     char hostname[HOST_NAME_MAX];
@@ -39,7 +37,7 @@ int getPort(int sock) {
 }
 
 // Connects to the binder and returns a socket file descriptor
-int connect_to_remote(char *hostname, char *port) {
+int connect_to_remote(const char *hostname, const char *port) {
     int sock;  
     struct addrinfo hints, *servinfo, *p;
     int rv;

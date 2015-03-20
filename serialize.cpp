@@ -19,7 +19,7 @@ using namespace std;
 // ** string ** //
 // NOTE: this method only works for null terminated string;
 // any string with multiple null character will be cut off at the first one
-vector<char> serializeString(char *data) {
+vector<char> serializeString(const char *data) {
     // NOTE: must include null terminator for deserialization
     return vector<char>(data, data + strlen(data) + 1);
 }
@@ -99,14 +99,27 @@ vector<char> serializeArgTypes(int *data) {
 
     return buffer;
 }
+
 vector<int> deserializeArgTypes(vector<char>::iterator &buffer) {
     vector<int> argTypes;
-
     // Deserialize array
     while(true) {
         //TODO: the byte order or the argtype might get fucked up by endianess with this method
         // sol'n: serialize each part of the arg type seperately in its own serialization method
         argTypes.push_back(deserializeInt(buffer));
+        if(argTypes.back() == 0) break;
+    }
+
+    return argTypes;
+}
+
+vector<ArgType> deserializeArgTypesIntoArgTypeVector(vector<char>::iterator &buffer) {
+    vector<ArgType> argTypes;
+    // Deserialize array
+    while(true) {
+        //TODO: the byte order or the argtype might get fucked up by endianess with this method
+        // sol'n: serialize each part of the arg type seperately in its own serialization method
+        argTypes.push_back(ArgType(deserializeInt(buffer)));
         if(argTypes.back() == 0) break;
     }
 

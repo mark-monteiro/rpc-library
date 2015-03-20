@@ -3,6 +3,10 @@
 #include <arpa/inet.h>
 #include <vector>
 #include <map>
+#include <set>
+#include <algorithm>    //for_each
+#include <utility>      //pair
+#include "pthread.h"
 
 #include "debug.h"
 #include "error_code.h"
@@ -16,34 +20,41 @@
 using namespace std;
 
 //TODO: maybe these shouldn't be at global scope....
+bool initialized = false;
 bool terminate_server = false;
 int binder_sock, listener_sock;
 map<FunctionSignature, skeleton> function_database;
+int numThreads = 0;
+pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 
 // Forward declarations
 bool processPort(int sock);
-bool terminateServer();
-bool executeRpcCall(Message message, int sock);
+bool terminateServer(int sock);
+void* executeRpcCall(void* thread_args);
 
 int rpcInit() {
     // Create listening socket for clients
     if((listener_sock = open_connection()) < 0) {
-        debug_print(("Failed to create listener socket"));
+        debug_print(("Failed to create listener socket\n"));
         return listener_sock;
     }
     debug_print(("rpcInit created listener socket on port %d\n", getPort(listener_sock)));
 
     // Connect to binder
     if((binder_sock = connect_to_binder()) < 0) {
-        debug_print(("Failed to create binder socket"));
+        debug_print(("Failed to create binder socket\n"));
         return binder_sock;
     }
     debug_print(("rpcInit connected to binder on socket %d\n", binder_sock));
 
+    initialized = true;
     return binder_sock;
 }
 
 int rpcRegister(char* name, int* argTypes, skeleton f) {
+    // Make sure we've been initialized
+    if(!initialized) return NOT_INITIALIZED;
+
     // Add function name and skeleton to local database (overwrite if existing)
     // No need to check for duplicate registration here, the binder can handle that
     function_database[FunctionSignature(name, argTypes)] = f;
@@ -76,27 +87,31 @@ int rpcExecute() {
     int return_val = 0;
 
     // select() variables
-    fd_set master;    // master file descriptor list
-    fd_set read_fds;  // temp file descriptor list for select()
-    int fdmax;        // maximum file descriptor number
+    set<int> read_fd_set;   // ordered set; keeps track of max fd and used to close sockets
+    fd_set master;          // master file descriptor list
+    fd_set read_fds;        // temp file descriptor list for select()
 
     // Initialize the master set with the listener and binder sockets
     FD_ZERO(&master);
     FD_SET(binder_sock, &master);
     FD_SET(listener_sock, &master);
-    fdmax = max(listener_sock, binder_sock);
+    read_fd_set.insert(binder_sock);
+    read_fd_set.insert(listener_sock);
 
     // main loop
     while(!terminate_server) {
         read_fds = master; // copy it
-        if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
+        if (select((*read_fd_set.rbegin())+1, &read_fds, NULL, NULL, NULL) == -1) {
             perror("select");
             return_val = SYS_SELECT_ERROR;
             break;
         }
 
         // run through the existing connections looking for data to read
-        for(int fd = 0; fd <= fdmax; fd++) {
+        for(set<int>::iterator i = read_fd_set.begin() ; !terminate_server && i != read_fd_set.end() ; ) {
+            int fd = *i;
+            i++;            //Iterate at start of loop in case this socket is closed
+
             if (FD_ISSET(fd, &read_fds)) {
                 // Handle new connections
                 if (fd == listener_sock) {
@@ -106,13 +121,14 @@ int rpcExecute() {
                     // Accept the connection
                     int newfd = accept(listener_sock, (struct sockaddr *)&remoteaddr, &addr_len);
                     if (newfd == -1) {
+                        debug_print(("failed to accept connection on socket %d\n", listener_sock));
                         perror("accept");
                         continue;
                     }
 
                     // Add socket to master set
-                    FD_SET(newfd, &master); // add to master set
-                    fdmax = max(fdmax, newfd);
+                    FD_SET(newfd, &master);
+                    read_fd_set.insert(newfd);
                     debug_print(("New connection accepted on socket %d\n", newfd));
                 }
                 // Handle data from a client
@@ -121,12 +137,12 @@ int rpcExecute() {
                         debug_print(("processPort failed; closing socket %d\n", fd));
                         close(fd);
                         FD_CLR(fd, &master);
-                        
+                        read_fd_set.erase(fd);
+
                         // If the binder connection was lost, just die
                         if(fd == binder_sock) {
                             return_val = BINDER_DIED;
                             terminate_server = true;
-                            break;
                         }
                     }
                 } // END handle data from client
@@ -134,9 +150,11 @@ int rpcExecute() {
         } // END looping through file descriptors
     } // END main loop
 
-    // TODO: wait for all execution threads to finish
-    // TODO: close all sockets
-    // TODO: send termination response to binder? Do we need to?
+    // Wait for all execution threads to finish
+    while(numThreads > 0) usleep(250000);
+
+    // Close all sockets
+    for_each(read_fd_set.begin(), read_fd_set.end(), close);
 
     return return_val;
 }
@@ -149,16 +167,37 @@ bool processPort(int sock) {
     // Receive message
     if(Message::recv(sock, &recv_message) == false) return false;
 
-    if(sock == binder_sock && recv_message.type == EXECUTE) return terminateServer();
-    // TODO: execution should happen on a new thread
-    else if(recv_message.type == EXECUTE) return executeRpcCall(recv_message, sock);
+    if(recv_message.type == TERMINATE) return terminateServer(sock);
+    else if(recv_message.type == EXECUTE) {
+        //Allocate memory on the heap for the thread arguments
+        pair<Message, int>* arguments = new pair<Message, int>(recv_message, sock);
+
+        //Increment the number of running threads
+        pthread_mutex_lock(&mu);
+        numThreads++;
+        pthread_mutex_unlock(&mu);
+
+        // Start the server method on a new thread
+        pthread_t exec_thread;
+        pthread_create(&exec_thread, NULL, executeRpcCall, (void*) arguments);
+        pthread_detach(exec_thread);
+        return true;
+    }
     else {
         debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString().c_str()));
         return false;
     }
 }
 
-bool terminateServer() {
+bool terminateServer(int sock) {
+    // If this didn't come from the binder just ignore it
+    // TODO: this should really check the hostname and port, in case the binder opened a new connection,
+    // but since we implemented the binder we can ignore that (or maybe they will test it?)
+    if(sock != binder_sock) {
+        debug_print(("TERMINATE request sent from someone other than the binder...ignoring\n"));
+        return true;
+    }
+
     // Set flag for accept loop to exit
     terminate_server = true;
     return true;
@@ -201,7 +240,11 @@ void deleteArgsMemory(vector<int> argTypes, vector<void*> args) {
     }
 }
 
-bool executeRpcCall(Message recv_message, int sock) {
+void* executeRpcCall(void* thread_args) {
+    pair<Message, int> arguments = *((pair<Message, int> *) thread_args);
+    Message recv_message = arguments.first;
+    int sock = arguments.second;
+
     string name;
     vector<int> argTypes;
     vector<void*> args, args_copy;
@@ -225,7 +268,7 @@ bool executeRpcCall(Message recv_message, int sock) {
 
     if(database_result == function_database.end()) {
         debug_print(("Failed to find function signature in database\n"));
-        return_value = FUNCTION_NOT_REGISTERED;
+        return_value = NOT_REGISTERED_ON_SERVER;
     }
     else {
         // Execute function
@@ -255,5 +298,12 @@ bool executeRpcCall(Message recv_message, int sock) {
     debug_print(("Freeing memory\n"));
     deleteArgsMemory(argTypes, args_copy);
 
-    return true;
+    //Decrement the number of running threads
+    pthread_mutex_lock(&mu);
+    numThreads--;
+    pthread_mutex_unlock(&mu);
+
+    // Free memory of the arguments passed to the thread
+    delete (pair<Message, int> *)thread_args;
+    return (void*)NULL;
 }

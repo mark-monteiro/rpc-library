@@ -1,5 +1,9 @@
-There are no extra dependencies or special compile instructions that deviate from the assignment spec.
-The basic instructions from the spec are incuded below:
+**This code must be compiled/linked with the pthread library using -pthread flag!
+
+Other than this, there are no extra dependencies or special
+compile instructions that deviate from the assignment spec.
+
+The basic instructions (from the spec) are incuded below:
 
 To compile the rpc library and the binder:
 `make` (or `make debug` to include debugging flags)
@@ -22,4 +26,4 @@ Run the client:
 Team Members
 ============
 Mark Monteiro   - mnrmonte
-Arash Mortazavi - xxxxxxxx
+Arash Mortazavi - a2mortaz
