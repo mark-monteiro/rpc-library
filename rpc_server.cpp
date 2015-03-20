@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <algorithm>    //for_each
+#include <utility>      //pair
 #include "pthread.h"
 
 #include "debug.h"
@@ -22,11 +23,13 @@ using namespace std;
 bool terminate_server = false;
 int binder_sock, listener_sock;
 map<FunctionSignature, skeleton> function_database;
+int numThreads = 0;
+pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 
 // Forward declarations
 bool processPort(int sock);
 bool terminateServer(int sock);
-bool executeRpcCall(Message message, int sock);
+void* executeRpcCall(void* thread_args);
 
 int rpcInit() {
     // Create listening socket for clients
@@ -125,8 +128,7 @@ int rpcExecute() {
                 }
                 // Handle data from a client
                 else {
-                    pthread_t exec_thread;
-                    if(processPort(fd, &exec_thread) == false) {
+                    if(processPort(fd) == false) {
                         debug_print(("processPort failed; closing socket %d\n", fd));
                         close(fd);
                         FD_CLR(fd, &master);
@@ -143,9 +145,8 @@ int rpcExecute() {
         } // END looping through file descriptors
     } // END main loop
 
-    // TODO: wait for all execution threads to finish
-    
-
+    // Wait for all execution threads to finish
+    while(numThreads > 0) usleep(250000);
 
     // Close all sockets
     for_each(read_fd_set.begin(), read_fd_set.end(), close);
@@ -153,7 +154,7 @@ int rpcExecute() {
     return return_val;
 }
 
-bool processPort(int sock, pthread_t &exec_thread) {
+bool processPort(int sock) {
     Message recv_message;
     debug_print(("--------------------------------------\n"));
     debug_print(("Processing request on socket %d\n", sock));
@@ -162,15 +163,20 @@ bool processPort(int sock, pthread_t &exec_thread) {
     if(Message::recv(sock, &recv_message) == false) return false;
 
     if(recv_message.type == TERMINATE) return terminateServer(sock);
-    // TODO: execution should happen on a new thread
-    //       so that long-running methods don't block the entire server
-    
-    
-
     else if(recv_message.type == EXECUTE) {
+        //Allocate memory on the heap for the thread arguments
         pair<Message, int>* arguments = new pair<Message, int>(recv_message, sock);
+
+        //Increment the number of running threads
+        pthread_mutex_lock(&mu);
+        numThreads++;
+        pthread_mutex_unlock(&mu);
+
+        // Start the server method on a new thread
+        pthread_t exec_thread;
         pthread_create(&exec_thread, NULL, executeRpcCall, (void*) arguments);
-        return executeRpcCall(recv_message, sock);
+        pthread_detach(exec_thread);
+        return true;
     }
     else {
         debug_print(("Invalid message type sent to server on socket %d: %s\n", sock, recv_message.typeToString().c_str()));
@@ -229,7 +235,7 @@ void deleteArgsMemory(vector<int> argTypes, vector<void*> args) {
     }
 }
 
-void* executeRpcCall(void* thread_args){ 
+void* executeRpcCall(void* thread_args) {
     pair<Message, int> arguments = *((pair<Message, int> *) thread_args);
     Message recv_message = arguments.first;
     int sock = arguments.second;
@@ -287,7 +293,12 @@ void* executeRpcCall(void* thread_args){
     debug_print(("Freeing memory\n"));
     deleteArgsMemory(argTypes, args_copy);
 
-    delete (pair<Message, int> *)thread_args;
+    //Decrement the number of running threads
+    pthread_mutex_lock(&mu);
+    numThreads--;
+    pthread_mutex_unlock(&mu);
 
+    // Free memory of the arguments passed to the thread
+    delete (pair<Message, int> *)thread_args;
     return (void*)NULL;
 }

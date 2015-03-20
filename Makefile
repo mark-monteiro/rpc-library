@@ -1,5 +1,5 @@
-FLAGS=-Wall
-DEBUG_FLAGS=-Wall -DDEBUG -ggdb -O0
+FLAGS=-pthread -Wall
+DEBUG_FLAGS=-pthread -Wall -DDEBUG -ggdb -O0
 
 default:
 	g++ -c $(FLAGS) arg_type.cpp function_signature.cpp serialize.cpp rpc_client.cpp rpc_server.cpp rpc_helpers.cpp message.cpp server.cpp function_signature_and_server.cpp
@@ -16,7 +16,7 @@ debug:
 test:
 	clang++ -c server_functions.c server_function_skels.c
 	clang++ -L. client1.c -lrpc -o client
-	clang++ -L. server_functions.o server_function_skels.o server.c -lrpc -o server
+	clang++ -L. server_functions.o server_function_skels.o server.c -pthread -lrpc -o server
 
 clean:
 	-rm *.o
